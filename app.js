@@ -1,6 +1,6 @@
 // Application Logic with Global Day Filter
 const ATTENDANCE_CATEGORIES = {
-    'Attended in My Jamaat': { label: 'W', color: '#28a745' },
+    w: { label: 'Attended in My Jamaat', color: '#28a745' },
     x: { label: 'Mehmaan (Guest) in My Jamaat', color: '#17a2b8' },
     y: { label: 'Late in My Jamaat', color: '#ffc107' },
     z: { label: 'Late in Other Jamaat', color: '#fd7e14' },
