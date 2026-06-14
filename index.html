@@ -27,7 +27,7 @@
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .header h1 {
@@ -40,10 +40,55 @@
             opacity: 0.9;
         }
 
+        /* Global Day Selector */
+        .global-day-selector {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .global-day-selector h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .day-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .day-btn {
+            padding: 10px 15px;
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .day-btn:hover {
+            border-color: #667eea;
+            background: #f9f9f9;
+        }
+
+        .day-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
         .nav {
             display: flex;
             gap: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -79,6 +124,7 @@
             display: block;
         }
 
+        /* Dashboard Styles */
         .dashboard-section {
             background: white;
             padding: 25px;
@@ -186,33 +232,51 @@
             padding-bottom: 10px;
         }
 
-        .day-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
-        .day-btn {
-            padding: 10px 15px;
-            background: #f0f0f0;
-            color: #333;
-            border: 2px solid #ddd;
-            border-radius: 4px;
+        .category-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
             cursor: pointer;
-            font-weight: bold;
             transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 3px solid transparent;
         }
 
-        .day-btn:hover {
-            border-color: #667eea;
-            background: #f9f9f9;
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .day-btn.active {
-            background: #667eea;
-            color: white;
+        .category-card.active {
             border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .category-code {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .category-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .category-count {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
         }
 
         .legend {
@@ -241,6 +305,20 @@
         .legend-description {
             font-size: 0.9em;
             color: #666;
+        }
+
+        .data-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .data-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
         }
 
         .sectors {
@@ -306,18 +384,6 @@
             font-weight: bold;
             color: #333;
             margin-bottom: 8px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .category-badge {
-            background: #667eea;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: bold;
         }
 
         .person-details {
@@ -354,13 +420,6 @@
             margin-bottom: 10px;
         }
 
-        .loading {
-            text-align: center;
-            color: #667eea;
-            font-size: 1.2em;
-            padding: 20px;
-        }
-
         .error {
             background: #fee;
             color: #c33;
@@ -382,6 +441,10 @@
         @media (max-width: 768px) {
             .charts-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .categories {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
 
             .header h1 {
@@ -411,9 +474,16 @@
     <div class="container">
         <div class="header">
             <h1>📊 Jamaat Attendance Dashboard</h1>
-            <p>9-Day Program Attendance Tracking</p>
+            <p>10-Day Program Attendance Tracking (Day 2-10)</p>
         </div>
 
+        <!-- Global Day Selector -->
+        <div class="global-day-selector">
+            <h3>📅 Select Day (Applies to All Pages):</h3>
+            <div class="day-selector" id="globalDaySelector"></div>
+        </div>
+
+        <!-- Navigation -->
         <div class="nav">
             <button class="nav-btn active" onclick="switchPage('dashboard')">📈 Dashboard</button>
             <button class="nav-btn" onclick="switchPage('details')">📋 Detail Table</button>
@@ -422,7 +492,7 @@
         <!-- Dashboard Page -->
         <div id="dashboard" class="page active">
             <div class="dashboard-section">
-                <h2>📊 Overall Statistics</h2>
+                <h2>📈 Statistics for <span id="dashboardDayLabel">Day 2</span></h2>
                 <div class="stats-grid" id="overallStats"></div>
             </div>
 
@@ -431,9 +501,6 @@
                 <div class="charts-grid">
                     <div class="chart-container">
                         <canvas id="categoryChart"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="trendChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -449,12 +516,7 @@
         <!-- Detail Table Page -->
         <div id="details" class="page">
             <div class="detail-section">
-                <h2>🗂️ Attendance Details</h2>
-                
-                <div>
-                    <h3 style="margin-bottom: 10px; color: #333;">Select Day:</h3>
-                    <div class="day-selector" id="daySelector"></div>
-                </div>
+                <h2>🗂️ Attendance Details for <span id="detailDayLabel">Day 2</span></h2>
 
                 <div class="legend">
                     <div class="legend-item">
@@ -479,7 +541,13 @@
                     </div>
                 </div>
 
-                <div id="detailContent"></div>
+                <h3 style="margin-bottom: 15px; color: #333;">Select Category:</h3>
+                <div class="categories" id="categories"></div>
+
+                <div class="data-section" id="dataContainer" style="display: none;">
+                    <h2 id="dataTitle">Attendance Data</h2>
+                    <div id="dataContent"></div>
+                </div>
             </div>
         </div>
     </div>

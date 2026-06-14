@@ -1,4 +1,4 @@
-// Application Logic
+// Application Logic with Global Day Filter
 const ATTENDANCE_CATEGORIES = {
     w: { label: 'Attended in My Jamaat', color: '#28a745' },
     x: { label: 'Mehmaan (Guest) in My Jamaat', color: '#17a2b8' },
@@ -23,6 +23,7 @@ const COLUMNS = {
 let sheetData = null;
 let attendanceDays = [];
 let selectedDay = null;
+let selectedCategory = null;
 let charts = {};
 
 // Initialize app
@@ -37,10 +38,6 @@ function switchPage(page) {
     
     document.getElementById(page).classList.add('active');
     event.target.classList.add('active');
-    
-    if (page === 'details' && selectedDay === null && attendanceDays.length > 0) {
-        selectDay(0);
-    }
 }
 
 // Fetch data from Google Sheets
@@ -79,7 +76,7 @@ async function loadData() {
             throw new Error('Sheet appears to be empty');
         }
 
-        // Extract attendance days (columns AE-AM)
+        // Extract attendance days (columns AE-AM = 9 columns for Day 2-10)
         const headers = sheetData[0];
         attendanceDays = [];
 
@@ -88,14 +85,13 @@ async function loadData() {
                 attendanceDays.push({
                     index: i,
                     date: headers[i],
-                    value: i - COLUMNS.attendanceStart + 1 // Day number 1-9
+                    value: i - COLUMNS.attendanceStart + 2 // Day number 2-10
                 });
             }
         }
 
-        // Render dashboard
-        renderDashboard();
-        renderDaySelector();
+        // Render global day selector
+        renderGlobalDaySelector();
         
     } catch (error) {
         console.error('Error fetching sheet data:', error);
@@ -103,101 +99,136 @@ async function loadData() {
     }
 }
 
-// Render Dashboard
-function renderDashboard() {
-    renderOverallStats();
-    renderCharts();
-    renderSectorSummary();
+// Render Global Day Selector
+function renderGlobalDaySelector() {
+    const selector = document.getElementById('globalDaySelector');
+    selector.innerHTML = '';
+
+    attendanceDays.forEach((day, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'day-btn';
+        btn.textContent = `Day ${day.value}`;
+        btn.onclick = () => selectDay(idx);
+        if (idx === 0) btn.classList.add('active');
+        selector.appendChild(btn);
+    });
+
+    // Select first day by default
+    selectDay(0);
 }
 
-// Render overall statistics
-function renderOverallStats() {
-    const statsDiv = document.getElementById('overallStats');
-    let totalPeople = new Set();
-    let categoryCounts = { w: 0, x: 0, y: 0, z: 0, a: 0 };
-    let dayWiseData = {};
+// Select Day (Master Filter)
+function selectDay(dayIdx) {
+    selectedDay = dayIdx;
+    selectedCategory = null; // Reset category selection
+    
+    // Update button states
+    document.querySelectorAll('.day-btn').forEach((btn, idx) => {
+        if (idx === dayIdx) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 
-    // Process all records
+    const dayLabel = `Day ${attendanceDays[dayIdx].value}`;
+    document.getElementById('dashboardDayLabel').textContent = dayLabel;
+    document.getElementById('detailDayLabel').textContent = dayLabel;
+
+    // Re-render both pages with new day
+    renderDashboard();
+    renderCategories();
+}
+
+// Get data for selected day
+function getDataForDay(dayIdx) {
+    const day = attendanceDays[dayIdx];
+    const dayData = { w: 0, x: 0, y: 0, z: 0, a: 0 };
+    const sectorData = {};
+    const categoryData = {};
+
     for (let rowIdx = 1; rowIdx < sheetData.length; rowIdx++) {
         const row = sheetData[rowIdx];
         if (!row[0] || row[0].trim() === '') continue;
 
-        totalPeople.add(row[COLUMNS.name]);
+        const value = row[day.index] ? row[day.index].trim().toLowerCase() : '';
+        if (!Object.keys(ATTENDANCE_CATEGORIES).includes(value)) continue;
 
-        // Count per category across all days
-        attendanceDays.forEach(day => {
-            const value = row[day.index] ? row[day.index].trim().toLowerCase() : '';
-            if (Object.keys(ATTENDANCE_CATEGORIES).includes(value)) {
-                categoryCounts[value]++;
-            }
-            
-            if (!dayWiseData[day.value]) {
-                dayWiseData[day.value] = {};
-            }
-            if (Object.keys(ATTENDANCE_CATEGORIES).includes(value)) {
-                dayWiseData[day.value][value] = (dayWiseData[day.value][value] || 0) + 1;
-            }
+        dayData[value]++;
+
+        const sector = row[COLUMNS.sector] || 'Unassigned';
+        if (!sectorData[sector]) {
+            sectorData[sector] = {
+                inCharge: row[COLUMNS.inCharge] || 'N/A',
+                total: 0,
+                categories: { w: 0, x: 0, y: 0, z: 0, a: 0 }
+            };
+        }
+        sectorData[sector].total++;
+        sectorData[sector].categories[value]++;
+
+        if (!categoryData[value]) {
+            categoryData[value] = [];
+        }
+        categoryData[value].push({
+            name: row[COLUMNS.name],
+            email: row[COLUMNS.email] || 'N/A',
+            phone: row[COLUMNS.phone] || 'N/A',
+            address: row[COLUMNS.address] || 'N/A',
+            city: row[COLUMNS.city] || 'N/A',
+            notes: row[COLUMNS.notes] || 'N/A',
+            sector: sector,
+            inCharge: row[COLUMNS.inCharge] || 'N/A'
         });
     }
 
-    const totalAttendance = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+    return { dayData, sectorData, categoryData };
+}
+
+// Render Dashboard for Selected Day
+function renderDashboard() {
+    const { dayData, sectorData } = getDataForDay(selectedDay);
+    
+    renderDashboardStats(dayData);
+    renderDashboardChart(dayData);
+    renderDashboardSectorSummary(sectorData);
+}
+
+// Render Dashboard Statistics
+function renderDashboardStats(dayData) {
+    const statsDiv = document.getElementById('overallStats');
+    const totalAttendance = Object.values(dayData).reduce((a, b) => a + b, 0);
 
     statsDiv.innerHTML = `
         <div class="stat-card">
-            <div class="stat-label">Total People</div>
-            <div class="stat-value">${totalPeople.size}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Attendance Records</div>
+            <div class="stat-label">Total Attendance</div>
             <div class="stat-value">${totalAttendance}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Attended (w)</div>
-            <div class="stat-value">${categoryCounts.w}</div>
+            <div class="stat-value">${dayData.w}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Guest (x)</div>
-            <div class="stat-value">${categoryCounts.x}</div>
+            <div class="stat-value">${dayData.x}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Late (y)</div>
-            <div class="stat-value">${categoryCounts.y}</div>
+            <div class="stat-value">${dayData.y}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Late Other (z)</div>
-            <div class="stat-value">${categoryCounts.z}</div>
+            <div class="stat-value">${dayData.z}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Absent (a)</div>
-            <div class="stat-value">${categoryCounts.a}</div>
+            <div class="stat-value">${dayData.a}</div>
         </div>
     `;
 }
 
-// Render Charts
-function renderCharts() {
-    const categoryData = { w: 0, x: 0, y: 0, z: 0, a: 0 };
-    const trendData = {};
-
-    // Collect data
-    for (let rowIdx = 1; rowIdx < sheetData.length; rowIdx++) {
-        const row = sheetData[rowIdx];
-        if (!row[0] || row[0].trim() === '') continue;
-
-        attendanceDays.forEach(day => {
-            const value = row[day.index] ? row[day.index].trim().toLowerCase() : '';
-            if (Object.keys(ATTENDANCE_CATEGORIES).includes(value)) {
-                categoryData[value]++;
-                
-                if (!trendData[day.value]) {
-                    trendData[day.value] = { w: 0, x: 0, y: 0, z: 0, a: 0 };
-                }
-                trendData[day.value][value]++;
-            }
-        });
-    }
-
-    // Pie Chart
+// Render Dashboard Chart
+function renderDashboardChart(dayData) {
     if (charts.categoryChart) {
         charts.categoryChart.destroy();
     }
@@ -208,7 +239,7 @@ function renderCharts() {
         data: {
             labels: ['Attended (w)', 'Guest (x)', 'Late (y)', 'Late Other (z)', 'Absent (a)'],
             datasets: [{
-                data: [categoryData.w, categoryData.x, categoryData.y, categoryData.z, categoryData.a],
+                data: [dayData.w, dayData.x, dayData.y, dayData.z, dayData.a],
                 backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545']
             }]
         },
@@ -222,95 +253,10 @@ function renderCharts() {
             }
         }
     });
-
-    // Trend Chart
-    if (charts.trendChart) {
-        charts.trendChart.destroy();
-    }
-
-    const trendCtx = document.getElementById('trendChart').getContext('2d');
-    const dayLabels = attendanceDays.map(d => `Day ${d.value}`);
-    
-    charts.trendChart = new Chart(trendCtx, {
-        type: 'bar',
-        data: {
-            labels: dayLabels,
-            datasets: [
-                {
-                    label: 'Attended (w)',
-                    data: attendanceDays.map(d => trendData[d.value]?.w || 0),
-                    backgroundColor: '#28a745'
-                },
-                {
-                    label: 'Guest (x)',
-                    data: attendanceDays.map(d => trendData[d.value]?.x || 0),
-                    backgroundColor: '#17a2b8'
-                },
-                {
-                    label: 'Late (y)',
-                    data: attendanceDays.map(d => trendData[d.value]?.y || 0),
-                    backgroundColor: '#ffc107'
-                },
-                {
-                    label: 'Late Other (z)',
-                    data: attendanceDays.map(d => trendData[d.value]?.z || 0),
-                    backgroundColor: '#fd7e14'
-                },
-                {
-                    label: 'Absent (a)',
-                    data: attendanceDays.map(d => trendData[d.value]?.a || 0),
-                    backgroundColor: '#dc3545'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    stacked: false
-                },
-                y: {
-                    stacked: false
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
 }
 
-// Render Sector Summary
-function renderSectorSummary() {
-    const sectorData = {};
-
-    for (let rowIdx = 1; rowIdx < sheetData.length; rowIdx++) {
-        const row = sheetData[rowIdx];
-        if (!row[0] || row[0].trim() === '') continue;
-
-        const sector = row[COLUMNS.sector] || 'Unassigned';
-        const inCharge = row[COLUMNS.inCharge] || 'N/A';
-
-        if (!sectorData[sector]) {
-            sectorData[sector] = {
-                inCharge: inCharge,
-                total: 0,
-                categories: { w: 0, x: 0, y: 0, z: 0, a: 0 }
-            };
-        }
-
-        attendanceDays.forEach(day => {
-            const value = row[day.index] ? row[day.index].trim().toLowerCase() : '';
-            if (Object.keys(ATTENDANCE_CATEGORIES).includes(value)) {
-                sectorData[sector].total++;
-                sectorData[sector].categories[value]++;
-            }
-        });
-    }
-
+// Render Dashboard Sector Summary
+function renderDashboardSectorSummary(sectorData) {
     let html = '';
     Object.keys(sectorData).sort().forEach(sector => {
         const data = sectorData[sector];
@@ -333,89 +279,87 @@ function renderSectorSummary() {
     document.getElementById('sectorSummary').innerHTML = html;
 }
 
-// Render Day Selector
-function renderDaySelector() {
-    const selector = document.getElementById('daySelector');
-    selector.innerHTML = '';
+// Render Category Cards
+function renderCategories() {
+    const { dayData } = getDataForDay(selectedDay);
+    const container = document.getElementById('categories');
+    container.innerHTML = '';
 
-    attendanceDays.forEach((day, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'day-btn';
-        btn.textContent = `Day ${day.value}`;
-        btn.onclick = () => selectDay(idx);
-        if (idx === 0) btn.classList.add('active');
-        selector.appendChild(btn);
+    Object.keys(ATTENDANCE_CATEGORIES).forEach(code => {
+        const count = dayData[code] || 0;
+        const category = ATTENDANCE_CATEGORIES[code];
+        
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        if (selectedCategory === code) card.classList.add('active');
+        
+        card.innerHTML = `
+            <div class="category-code">${code.toUpperCase()}</div>
+            <div class="category-label">${category.label}</div>
+            <div class="category-count">${count}</div>
+        `;
+        
+        card.addEventListener('click', () => selectCategory(code, card));
+        container.appendChild(card);
     });
-
-    selectDay(0);
 }
 
-// Select Day and render details
-function selectDay(dayIdx) {
-    selectedDay = dayIdx;
+// Select Category and Display Data
+function selectCategory(code, element) {
+    // Remove active state from all cards
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.classList.remove('active');
+    });
     
-    // Update button states
-    document.querySelectorAll('.day-btn').forEach((btn, idx) => {
-        if (idx === dayIdx) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-
-    renderDetailContent();
+    // Add active state to selected card
+    element.classList.add('active');
+    
+    selectedCategory = code;
+    renderDetailData(code);
 }
 
-// Render Detail Content
-function renderDetailContent() {
-    const day = attendanceDays[selectedDay];
-    const contentDiv = document.getElementById('detailContent');
-
-    // Group data by sector
-    const bySector = {};
-
-    for (let rowIdx = 1; rowIdx < sheetData.length; rowIdx++) {
-        const row = sheetData[rowIdx];
-        if (!row[0] || row[0].trim() === '') continue;
-
-        const value = row[day.index] ? row[day.index].trim().toLowerCase() : '';
-        if (!Object.keys(ATTENDANCE_CATEGORIES).includes(value)) continue;
-
-        const sector = row[COLUMNS.sector] || 'Unassigned';
-        if (!bySector[sector]) {
-            bySector[sector] = [];
-        }
-
-        bySector[sector].push({
-            name: row[COLUMNS.name],
-            category: value,
-            email: row[COLUMNS.email] || 'N/A',
-            phone: row[COLUMNS.phone] || 'N/A',
-            address: row[COLUMNS.address] || 'N/A',
-            city: row[COLUMNS.city] || 'N/A',
-            notes: row[COLUMNS.notes] || 'N/A',
-            inCharge: row[COLUMNS.inCharge] || 'N/A'
-        });
-    }
-
-    if (Object.keys(bySector).length === 0) {
+// Render Detail Data for Selected Category
+function renderDetailData(categoryCode) {
+    const { categoryData } = getDataForDay(selectedDay);
+    const container = document.getElementById('dataContainer');
+    const contentDiv = document.getElementById('dataContent');
+    const title = document.getElementById('dataTitle');
+    
+    const category = ATTENDANCE_CATEGORIES[categoryCode];
+    const filteredData = categoryData[categoryCode] || [];
+    
+    title.textContent = `${category.label} (${filteredData.length} records)`;
+    
+    if (filteredData.length === 0) {
         contentDiv.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📭</div>
-                <p>No records found for ${day.date}</p>
+                <p>No records found for this category</p>
             </div>
         `;
+        container.style.display = 'block';
         return;
     }
 
-    let html = '<div class="sectors">';
+    // Group by sector
+    const bySector = {};
+    filteredData.forEach(person => {
+        const sector = person.sector || 'Unassigned';
+        if (!bySector[sector]) {
+            bySector[sector] = [];
+        }
+        bySector[sector].push(person);
+    });
 
+    // Render sectors
+    let sectorHTML = '<div class="sectors">';
+    
     Object.keys(bySector).sort().forEach((sector, idx) => {
         const people = bySector[sector];
         const inCharge = people[0].inCharge;
         const sectorId = `sector-${idx}`;
-
-        html += `
+        
+        sectorHTML += `
             <div class="sector">
                 <div class="sector-header" onclick="toggleSector('${sectorId}')">
                     <div>
@@ -427,14 +371,11 @@ function renderDetailContent() {
                 <div class="sector-content" id="${sectorId}">
                     <ul class="person-list">
         `;
-
+        
         people.forEach(person => {
-            html += `
+            sectorHTML += `
                 <li class="person-item">
-                    <div class="person-name">
-                        👤 ${person.name}
-                        <span class="category-badge">${person.category}</span>
-                    </div>
+                    <div class="person-name">👤 ${person.name}</div>
                     <div class="person-details">
                         <div class="detail-item">
                             <span class="detail-label">Email:</span>
@@ -460,26 +401,30 @@ function renderDetailContent() {
                 </li>
             `;
         });
-
-        html += `
+        
+        sectorHTML += `
                     </ul>
                 </div>
             </div>
         `;
     });
-
-    html += '</div>';
-    contentDiv.innerHTML = html;
-
-    // Expand first sector
-    expandSector('sector-0');
+    
+    sectorHTML += '</div>';
+    contentDiv.innerHTML = sectorHTML;
+    container.style.display = 'block';
+    
+    // Expand first sector by default
+    const firstSector = Object.keys(bySector)[0];
+    if (firstSector) {
+        expandSector(`sector-0`);
+    }
 }
 
 // Toggle sector expansion
 function toggleSector(sectorId) {
     const content = document.getElementById(sectorId);
     const toggle = document.getElementById(sectorId + '-toggle');
-
+    
     if (content.classList.contains('expanded')) {
         content.classList.remove('expanded');
         toggle.textContent = '▼';
