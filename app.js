@@ -9,12 +9,12 @@ const ATTENDANCE_CATEGORIES = {
 
 // Column indices (0-based)
 const COLUMNS = {
-    name: 0,           // Column A
-    email: 4,          // Column E
-    phone: 8,          // Column I
-    address: 9,        // Column J
-    city: 10,          // Column K
-    notes: 13,         // Column N
+    name: 4,           // Column A
+    email: 14,          // Column E
+    phone: 13,          // Column I
+    address: 16,        // Column J
+    city: 18,          // Column K
+    gender: 9,         // Column N
     sector: 20,        // Column U
     inCharge: 23,      // Column X
     attendanceStart: 30 // Column AE
@@ -176,7 +176,7 @@ function getDataForDay(dayIdx) {
             phone: row[COLUMNS.phone] || 'N/A',
             address: row[COLUMNS.address] || 'N/A',
             city: row[COLUMNS.city] || 'N/A',
-            notes: row[COLUMNS.notes] || 'N/A',
+            gender: row[COLUMNS.gender] || 'N/A',
             sector: sector,
             inCharge: row[COLUMNS.inCharge] || 'N/A'
         });
@@ -394,8 +394,8 @@ function renderDetailData(categoryCode) {
                             <span class="detail-value">${person.city}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">Notes:</span>
-                            <span class="detail-value">${person.notes}</span>
+                            <span class="detail-label">gender:</span>
+                            <span class="detail-value">${person.gender}</span>
                         </div>
                     </div>
                 </li>
