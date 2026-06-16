@@ -91,6 +91,9 @@ const CONFIG = {
   MISAQ_COL:    "K",   // Misaq
   NAME_COL:     "E",   // Full name  (shown in drill-down)
   AGE_COL:      "I",   // Age        (shown in drill-down)
+  SECINC_F_COL: "A",   // Sector Incharge (Female) Name
+  SUBINC_COL:   "N",  // Sub-Sector Incharge Name
+  SUBINC_F_COL: "Q",  // Sub-Sector Incharge (Female) Name
 
   // Day label -> the column letter that holds that day's status
   DAY_COLS: { "2":"AE","3":"AF","4":"AG","5":"AH","6":"AI","7":"AJ","8":"AK","9":"AL","10":"AM" },
@@ -313,19 +316,22 @@ function loadPeople(sector,incharge,box){
   if(g)  where+=` and ${c.GENDER_COL}='${qq(g)}'`;
   if(st) where+=` and ${d}='${qq(st)}'`;
   const key=[sector,incharge,mo,g,st,$('fDay').value].join('|');
-  const tq=`select ${c.NAME_COL},${c.AGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d} where ${where}`;
+  const tq=`select ${c.NAME_COL},${c.AGE_COL},${c.GENDER_COL},${c.MISAQ_COL},`+
+           `${c.SECINC_F_COL},${c.SUBINC_COL},${c.SUBINC_F_COL},${d} where ${where}`;
   const draw=data=>{
     if(!data.length){box.innerHTML='<i>No people found.</i>';return;}
     box.innerHTML=
-      `<table class="sub"><thead><tr><th>Name</th><th class="n">Age</th><th>Gender</th><th>Misaq</th><th>Status</th></tr></thead><tbody>`+
-      data.map(p=>{const st=(p[4]||'').trim().toLowerCase();const lbl=SLABEL[st]||'—';
+      `<table class="sub"><thead><tr><th>Name</th><th class="n">Age</th><th>Gender</th><th>Misaq</th>`+
+      `<th>Sector Incharge (F)</th><th>Sub-Sector Incharge</th><th>Sub-Sector Incharge (F)</th><th>Status</th></tr></thead><tbody>`+
+      data.map(p=>{const stv=(p[7]||'').trim().toLowerCase();const lbl=SLABEL[stv]||'—';
         return `<tr><td>${esc(p[0])}</td><td class="n">${esc(p[1])}</td><td>${esc(p[2])}</td><td>${esc(p[3])}</td>`+
-               `<td><span class="badge" style="--bc:${COL[st]||'#475569'}">${lbl}</span></td></tr>`;}).join('')+
+               `<td>${esc(p[4])}</td><td>${esc(p[5])}</td><td>${esc(p[6])}</td>`+
+               `<td><span class="badge" style="--bc:${COL[stv]||'#475569'}">${lbl}</span></td></tr>`;}).join('')+
       `</tbody></table>`;
   };
   if(peopleCache[key]){draw(peopleCache[key]);return;}
   Papa.parse(gvizUrl(tq),{download:true,complete:res=>{
-    const data=(res.data||[]).filter(r=>r&&r.length>=5 && (r[0]||'').trim() && (r[0]||'').trim()!=='Full_Name');
+    const data=(res.data||[]).filter(r=>r&&r.length>=8 && (r[0]||'').trim() && (r[0]||'').trim()!=='Full_Name');
     peopleCache[key]=data; draw(data);
   },error:()=>{box.innerHTML='<i>Could not load people.</i>';}});
 }
