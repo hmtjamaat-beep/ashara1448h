@@ -1,115 +1,115 @@
-# Jamaat Attendance Dashboard
+# Attendance Dashboard (live from Google Sheets)
 
-A simple, real-time attendance tracking dashboard that pulls data directly from Google Sheets.
+A single-page dashboard that reads your Google Sheet **every time it loads** and renders charts
+and a searchable table. Host it free on GitHub Pages. No backend, no build step.
 
-## Features
+It only reads **name + sector + incharge + gender + misaq + the day columns**. Personal
+identifiers (ITS ID, phone, address, email, blood group) are never requested or stored.
 
-✅ **Real-time Data Sync** - Fetches latest data from Google Sheets  
-✅ **5 Attendance Categories** - Quick overview of attendance status  
-✅ **Sector-based Grouping** - Organized by sectors with in-charge information  
-✅ **Detailed Filtering** - Click categories to view filtered records  
-✅ **Responsive Design** - Works on desktop and mobile  
-✅ **No Backend Required** - Pure HTML/JS with direct Sheet integration  
-
-## Setup
-
-### 1. Prepare Your Google Sheet
-
-Ensure your Google Sheet has the following structure:
-
-- **Column A**: Name
-- **Column E**: Email
-- **Column I**: Phone
-- **Column J**: Address
-- **Column K**: City
-- **Column N**: Notes
-- **Column U**: Sector
-- **Column X**: In Charge
-- **Columns AE-AM**: Daily attendance (Mon-Sun)
-
-### 2. Make Sheet Publicly Accessible
-
-1. Open your Google Sheet
-2. Click **Share** (top right)
-3. Change to **"Anyone with the link can view"**
-4. Copy the shareable link
-
-### 3. Deploy
-
-Simply open `index.html` in a browser or deploy to any static hosting:
-
-```bash
-# Using Python (if available)
-python -m http.server 8000
-
-# Or using Node.js
-npx http-server
-
-# Or directly open index.html in browser
-```
-
-### 4. Use the Dashboard
-
-1. Paste your Google Sheet URL into the input field
-2. Click **Load Data**
-3. Click any attendance category card to view filtered records
-4. Expand sectors to see detailed information
-5. Click **Refresh** to get the latest data
-
-## Attendance Categories
-
-- **w** - Attended in My Jamaat ✅
-- **x** - Mehmaan (Guest) in My Jamaat 👥
-- **y** - Late in My Jamaat ⏰
-- **z** - Late in Other Jamaat 🔀
-- **a** - Absent ❌
+---
 
 ## Files
 
-- `index.html` - Main dashboard interface
-- `dashboard.js` - Data fetching and rendering logic
-- `README.md` - Documentation
+| File | Purpose |
+|------|---------|
+| `index.html` | The whole dashboard. This is the only file you edit. |
+| `README.md` | This guide. |
 
-## How It Works
+---
 
-1. **CSV Export**: Uses Google Sheets CSV export API (no authentication needed)
-2. **Real-time**: Data is fetched fresh on each load/refresh
-3. **Processing**: JavaScript parses CSV and categorizes attendance
-4. **Display**: Dynamic rendering based on selected category
+## 1. Where to put your Google Sheet URL
 
-## Temporary Setup Note
+Open `index.html` and edit the **CONFIG** block near the top (it's clearly marked).
+You only ever touch this block:
 
-This dashboard is designed for temporary 10-day deployments. For production use (beyond 10 days), consider:
+```js
+const CONFIG = {
+  SHEET_ID: "161tCOlKVaV4AHyi6UmsxbWsnvPKBhFyzhPOEUlXktI8",   // from the sheet URL
+  GID: "108774125",                                            // the tab's gid
+  PUBLISHED_CSV_URL: "",                                       // fallback, see step 4
+  DAYS: ["2","3","4","5","6","7","8","9","10"],
+  AUTO_REFRESH_MIN: 5
+};
+```
 
-- Adding a backend API layer
-- Implementing caching
-- Using Google Sheets API with proper authentication
-- Adding data persistence
+Your sheet URL looks like:
 
-## Browser Support
+```
+https://docs.google.com/spreadsheets/d/161tCOlKVaV4AHyi6UmsxbWsnvPKBhFyzhPOEUlXktI8/edit#gid=108774125
+                                        └──────────── SHEET_ID ───────────────────┘        └── GID ──┘
+```
 
-- Chrome/Edge: ✅ Fully supported
-- Firefox: ✅ Fully supported
-- Safari: ✅ Fully supported
-- IE: ❌ Not supported
+- **SHEET_ID** = the part between `/d/` and `/edit`.
+- **GID** = the number after `#gid=` (the specific tab). First tab is usually `0`.
 
-## Troubleshooting
+These are already filled in with your current sheet, so you may not need to change anything.
 
-### Data not loading?
-- Ensure the Google Sheet is publicly shared
-- Check the sheet URL is correct
-- Verify columns AE-AM contain attendance data
-- Check browser console for errors (F12)
+---
 
-### Columns not appearing?
-- Ensure all required columns exist
-- Verify column positions (A, E, I, J, K, N, U, X, AE-AM)
-- Check for empty rows that might offset columns
+## 2. Make the sheet readable
 
-### CORS Issues?
-- This uses Google Sheets' public CSV export which bypasses CORS
-- If still having issues, try a different browser
+The page reads the sheet through the browser, so the sheet must be link-readable:
 
-## License
+1. In Google Sheets: **Share** (top right).
+2. Under *General access* choose **Anyone with the link** → role **Viewer**.
+3. Done. (No one can edit — only view.)
 
-Open source - feel free to modify and use as needed.
+> If your data is sensitive, see step 4 for the "Publish to web" alternative, which exposes
+> only this one tab as CSV rather than the whole file.
+
+---
+
+## 3. Host on GitHub Pages
+
+1. Create a new repository on GitHub (e.g. `attendance-dashboard`), **Public**.
+2. Upload `index.html` (and `README.md`) — use **Add file ▸ Upload files**, or:
+   ```bash
+   git init
+   git add index.html README.md
+   git commit -m "Attendance dashboard"
+   git branch -M main
+   git remote add origin https://github.com/<your-username>/attendance-dashboard.git
+   git push -u origin main
+   ```
+3. In the repo go to **Settings ▸ Pages**.
+4. Under *Build and deployment ▸ Source* pick **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
+5. Wait ~1 minute. Your dashboard is live at:
+   ```
+   https://<your-username>.github.io/attendance-dashboard/
+   ```
+
+---
+
+## 4. How "auto-update" works
+
+- The page fetches the sheet **fresh on every load** and again every `AUTO_REFRESH_MIN` minutes
+  (default 5). A cache-busting parameter is added so you always get the latest data.
+- So: **edit your Google Sheet → reload the page (or wait 5 min) → numbers update.**
+  You do **not** need to re-deploy to GitHub when the data changes — only when you change the
+  dashboard code itself.
+- There's also a **↻ Reload** button in the top-right to refresh on demand.
+
+### If the page shows a red "Could not load the sheet" box (CORS)
+Some Google accounts block the direct CSV endpoint from a browser. The reliable fix:
+
+1. In Google Sheets: **File ▸ Share ▸ Publish to web**.
+2. Choose the specific tab, format **Comma-separated values (.csv)**, click **Publish**.
+3. Copy the link it gives you and paste it into `PUBLISHED_CSV_URL` in `index.html`:
+   ```js
+   PUBLISHED_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?gid=108774125&single=true&output=csv",
+   ```
+4. Re-upload `index.html`. This URL also auto-reflects sheet edits.
+
+---
+
+## Notes on the numbers
+
+- **People vs. status counts:** Every person is counted once. Anyone with no status entered for the
+  selected day appears under **Not recorded**, so the four status counts plus *Not recorded* always
+  add up to the total people. (This is why earlier a raw count of statuses looked one short of the
+  headcount — one person had no status filled in.)
+- **Columns are matched by header name** (`Full_Name`, `Gender`, `Misaq`, `Sector`,
+  `Sector_Incharge_Name`, and the day headers `2`–`10`), so inserting/moving columns won't break it,
+  as long as those header names stay the same.
+- **Status values** recognised: `ontime`, `late`, `absent`, `other mauze` (case-insensitive).
+  If you use different words in the sheet, update the `STAT`/`SLABEL`/`COL` lists in `index.html`.
