@@ -74,6 +74,7 @@ const CONFIG = {
 
   // Sheet COLUMN LETTERS (change only if you move columns in the sheet).
   COUNT_COL:    "B",   // any always-filled column, used only to count rows
+  MOHALLA_COL:  "F",   // Mohalla (Haidery / Jasmine Park)
   SECTOR_COL:   "U",   // Sector
   INCHARGE_COL: "X",   // Sector_Incharge_Name
   GENDER_COL:   "J",   // Gender
@@ -98,6 +99,7 @@ const CONFIG = {
   </div>
   <div class="filters">
     <label class="fl">Day<select id="fDay"></select></label>
+    <label class="fl">Mohalla<select id="fMohalla"></select></label>
     <label class="fl">Sector<select id="fSector"></select></label>
     <label class="fl">Incharge<select id="fIncharge"></select></label>
     <label class="fl">Gender<select id="fGender"></select></label>
@@ -154,8 +156,8 @@ function dayCol(){ return CONFIG.DAY_COLS[$('fDay').value] || CONFIG.DAY_COLS['2
 function load(){
   $('status').textContent='Loading…'; $('err').style.display='none';
   const c=CONFIG, d=dayCol();
-  const tq=`select ${c.SECTOR_COL},${c.INCHARGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d},count(${c.COUNT_COL}) `+
-           `group by ${c.SECTOR_COL},${c.INCHARGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d}`;
+  const cols=`${c.MOHALLA_COL},${c.SECTOR_COL},${c.INCHARGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d}`;
+  const tq=`select ${cols},count(${c.COUNT_COL}) group by ${cols}`;
   Papa.parse(gvizUrl(tq),{download:true,
     complete:res=>{ try{ parse(res.data); }catch(e){ showErr(e.message); } },
     error:err=>showErr(err.message||'Network error')});
@@ -172,19 +174,21 @@ function showErr(msg){
 function parse(rows){
   if(!rows||rows.length<2) throw new Error('No data returned.');
   // columns: sector, incharge, gender, misaq, status, count
+  // columns: mohalla, sector, incharge, gender, misaq, status, count
   const out=[];
   for(let i=1;i<rows.length;i++){
-    const r=rows[i]; if(!r||r.length<6) continue;
-    const sector=(r[0]||'').trim();
-    const status=(r[4]||'').trim().toLowerCase();
+    const r=rows[i]; if(!r||r.length<7) continue;
+    const sector=(r[1]||'').trim();
+    const status=(r[5]||'').trim().toLowerCase();
     if(sector==='Sector' || !STAT.includes(status)) continue; // skip stray header / blanks
     out.push({
+      mohalla:(r[0]||'').trim()||'Unassigned',
       sector: sector||'Unassigned',
-      incharge:(r[1]||'').trim()||'Unassigned',
-      gender:(r[2]||'').trim()||'Unknown',
-      misaq:(r[3]||'').trim()||'Unknown',
+      incharge:(r[2]||'').trim()||'Unassigned',
+      gender:(r[3]||'').trim()||'Unknown',
+      misaq:(r[4]||'').trim()||'Unknown',
       status,
-      count: parseInt(r[5],10)||0
+      count: parseInt(r[6],10)||0
     });
   }
   CUBE=out;
@@ -198,6 +202,7 @@ function fill(sel,vals,all){const cur=sel.value;sel.innerHTML='';const o=documen
   vals.forEach(v=>{const e=document.createElement('option');e.value=v;e.textContent=v;sel.appendChild(e);});if([...sel.options].some(o=>o.value===cur))sel.value=cur;}
 
 function buildFilters(){
+  fill($('fMohalla'),uniq(CUBE.map(p=>p.mohalla)),'All mohallas');
   fill($('fSector'),uniq(CUBE.map(p=>p.sector)),'All sectors');
   fill($('fIncharge'),uniq(CUBE.map(p=>p.incharge)),'All incharges');
   fill($('fGender'),uniq(CUBE.map(p=>p.gender)),'All genders');
@@ -208,8 +213,8 @@ function buildDays(){
 }
 
 function filtered(){
-  const s=$('fSector').value,ic=$('fIncharge').value,g=$('fGender').value;
-  return CUBE.filter(r=>(!s||r.sector===s)&&(!ic||r.incharge===ic)&&(!g||r.gender===g));
+  const mo=$('fMohalla').value,s=$('fSector').value,ic=$('fIncharge').value,g=$('fGender').value;
+  return CUBE.filter(r=>(!mo||r.mohalla===mo)&&(!s||r.sector===s)&&(!ic||r.incharge===ic)&&(!g||r.gender===g));
 }
 function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg);}
 function blank(){return STAT.reduce((o,s)=>(o[s]=0,o),{});}
@@ -219,7 +224,7 @@ function render(){
   const tot=blank(); rows.forEach(r=>tot[r.status]+=r.count);
   const total=STAT.reduce((a,s)=>a+tot[s],0);
   const pct=n=>total?Math.round(n/total*100):0;
-  $('ctx').textContent=`${$('fSector').value||'All sectors'} · ${$('fIncharge').value||'All incharges'} · Day ${$('fDay').value}`;
+  $('ctx').textContent=`${$('fMohalla').value||'All mohallas'} · ${$('fSector').value||'All sectors'} · ${$('fIncharge').value||'All incharges'} · Day ${$('fDay').value}`;
 
   $('kpis').innerHTML=[
     {l:'Marked',v:total,p:'total records',c:'var(--cyan)'},
@@ -276,7 +281,7 @@ function renderTable(rows,tot,total){
 }
 
 document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=(k==='sector'||k==='incharge')?1:-1;}render();});
-['fSector','fIncharge','fGender'].forEach(id=>$(id).onchange=render);
+['fMohalla','fSector','fIncharge','fGender'].forEach(id=>$(id).onchange=render);
 $('fDay').onchange=load;          // day change needs a new server query
 $('reload').onclick=load;
 buildDays(); load();
