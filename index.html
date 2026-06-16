@@ -1,558 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jamaat Attendance Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        /* Global Day Selector */
-        .global-day-selector {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        .global-day-selector h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-
-        .day-selector {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .day-btn {
-            padding: 10px 15px;
-            background: #f0f0f0;
-            color: #333;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .day-btn:hover {
-            border-color: #667eea;
-            background: #f9f9f9;
-        }
-
-        .day-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        .nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .nav-btn {
-            padding: 12px 30px;
-            background: white;
-            color: #667eea;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .nav-btn.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        /* Dashboard Styles */
-        .dashboard-section {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .dashboard-section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 0.9em;
-            opacity: 0.9;
-            margin-bottom: 8px;
-        }
-
-        .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-        }
-
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 6px;
-        }
-
-        .sector-summary {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 20px;
-        }
-
-        .sector-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: white;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            border-left: 3px solid #667eea;
-        }
-
-        .sector-name {
-            font-weight: bold;
-            color: #333;
-        }
-
-        .sector-details {
-            display: flex;
-            gap: 15px;
-            font-size: 0.9em;
-            flex-wrap: wrap;
-        }
-
-        .sector-detail {
-            color: #666;
-        }
-
-        /* Detail Page Styles */
-        .detail-section {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .detail-section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .categories {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .category-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border: 3px solid transparent;
-        }
-
-        .category-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .category-card.active {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .category-code {
-            font-size: 2em;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .category-label {
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .category-count {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .legend {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 6px;
-        }
-
-        .legend-item {
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-        }
-
-        .legend-code {
-            font-weight: bold;
-            min-width: 30px;
-            color: #667eea;
-            font-size: 1.1em;
-        }
-
-        .legend-description {
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .data-section {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-        }
-
-        .data-section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.3em;
-        }
-
-        .sectors {
-            margin-bottom: 20px;
-        }
-
-        .sector {
-            background: #f9f9f9;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-            border-left: 4px solid #667eea;
-        }
-
-        .sector-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .sector-title {
-            font-weight: bold;
-            color: #333;
-            font-size: 1.1em;
-        }
-
-        .sector-info {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-
-        .sector-toggle {
-            color: #667eea;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-
-        .sector-content {
-            display: none;
-            margin-top: 15px;
-        }
-
-        .sector-content.expanded {
-            display: block;
-        }
-
-        .person-list {
-            list-style: none;
-        }
-
-        .person-item {
-            background: white;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            border-left: 3px solid #764ba2;
-        }
-
-        .person-name {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .person-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            font-size: 0.85em;
-            color: #666;
-        }
-
-        .detail-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .detail-label {
-            font-weight: bold;
-            color: #333;
-        }
-
-        .detail-value {
-            color: #666;
-            margin-top: 2px;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 40px 20px;
-        }
-
-        .empty-state-icon {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-
-        .error {
-            background: #fee;
-            color: #c33;
-            padding: 15px;
-            border-radius: 4px;
-            border-left: 4px solid #c33;
-            margin-bottom: 20px;
-        }
-
-        .success {
-            background: #efe;
-            color: #3c3;
-            padding: 15px;
-            border-radius: 4px;
-            border-left: 4px solid #3c3;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .categories {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-
-            .header h1 {
-                font-size: 1.8em;
-            }
-
-            .nav {
-                flex-direction: column;
-            }
-
-            .nav-btn {
-                width: 100%;
-            }
-
-            .day-selector {
-                gap: 5px;
-            }
-
-            .day-btn {
-                padding: 8px 12px;
-                font-size: 0.9em;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --bg:#070A16; --bg2:#0C1124; --panel:rgba(255,255,255,.04); --panel-brd:rgba(255,255,255,.09);
+  --ink:#EAF0FF; --muted:#8A93B2;
+  --cyan:#22D3EE; --blue:#3B82F6; --violet:#8B5CF6; --magenta:#EC4899; --amber:#F59E0B; --rose:#F43F5E; --green:#34D399;
+  --grad:linear-gradient(120deg,#8B5CF6 0%,#3B82F6 40%,#22D3EE 80%);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 12% -8%,rgba(139,92,246,.20),transparent 55%),
+             radial-gradient(1100px 700px at 95% 0%,rgba(34,211,238,.16),transparent 55%),
+             radial-gradient(900px 600px at 60% 110%,rgba(236,72,153,.12),transparent 55%),
+             var(--bg);
+  min-height:100vh;padding:28px 30px 60px;}
+.head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:26px}
+h1{font-size:30px;margin:0;font-weight:800;letter-spacing:-.5px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--muted);font-size:13.5px;margin-top:6px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cyan);margin-right:7px;box-shadow:0 0 10px var(--cyan)}
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+select{background:var(--bg2);color:var(--ink);border:1px solid var(--panel-brd);border-radius:10px;
+  padding:9px 13px;font-size:13px;outline:none;min-width:150px;cursor:pointer}
+select:focus{border-color:var(--violet)}
+label.fl{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+button.rl{background:linear-gradient(120deg,#8B5CF6,#3B82F6);color:#fff;border:0;border-radius:10px;padding:10px 16px;
+  font-size:13px;font-weight:600;cursor:pointer;height:38px}
+button.rl:hover{filter:brightness(1.1)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:var(--panel);border:1px solid var(--panel-brd);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--cyan))}
+.kpi .v{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.kpi .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:3px}
+.kpi .p{font-size:12px;color:var(--muted);margin-top:2px}
+.grid{display:grid;grid-template-columns:1.1fr 1.4fr;gap:18px;margin-bottom:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--panel-brd);border-radius:18px;padding:18px 20px}
+.card h3{margin:0 0 14px;font-size:14px;font-weight:700;letter-spacing:.2px}
+.card h3 span{color:var(--muted);font-weight:500;font-size:12px}
+.chartwrap{position:relative;height:280px}
+.chartwrap.tall{height:360px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;position:sticky;top:0;background:#0b1024;cursor:pointer;user-select:none}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+.tablewrap{max-height:430px;overflow:auto;border-radius:12px}
+.badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-ontime{background:rgba(52,211,153,.16);color:#6EE7B7}
+.b-late{background:rgba(245,158,11,.16);color:#FBBF24}
+.b-absent{background:rgba(244,63,94,.18);color:#FB7185}
+.b-other{background:rgba(139,92,246,.18);color:#C4B5FD}
+.b-none{background:rgba(138,147,178,.14);color:#8A93B2}
+.note{color:var(--muted);font-size:12px;margin-top:18px;line-height:1.6;border-top:1px solid var(--panel-brd);padding-top:14px}
+.search{background:var(--bg2);border:1px solid var(--panel-brd);border-radius:10px;padding:8px 12px;color:var(--ink);font-size:13px;width:220px;outline:none}
+.search:focus{border-color:var(--violet)}
+#status{font-size:12px;color:var(--muted);margin-top:6px}
+#err{display:none;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.4);color:#FCA5A5;
+  padding:16px 18px;border-radius:14px;margin-bottom:18px;font-size:13.5px;line-height:1.6}
+#err code{background:rgba(0,0,0,.3);padding:2px 6px;border-radius:5px;color:#FBBF24}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.grid,.grid3{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 Jamaat Attendance Dashboard</h1>
-            <p>10-Day Program Attendance Tracking (Day 2-10)</p>
-        </div>
 
-        <!-- Global Day Selector -->
-        <div class="global-day-selector">
-            <h3>📅 Select Day (Applies to All Pages):</h3>
-            <div class="day-selector" id="globalDaySelector"></div>
-        </div>
+<!-- ============================================================= -->
+<!--  CONFIG  -  EDIT THIS BLOCK ONLY                              -->
+<!--  To point at a different Google Sheet, change SHEET_ID/GID.  -->
+<!-- ============================================================= -->
+<script>
+const CONFIG = {
+  // The long ID in your sheet URL: docs.google.com/spreadsheets/d/THIS_PART/edit
+  SHEET_ID: "161tCOlKVaV4AHyi6UmsxbWsnvPKBhFyzhPOEUlXktI8",
 
-        <!-- Navigation -->
-        <div class="nav">
-            <button class="nav-btn active" onclick="switchPage('dashboard')">📈 Dashboard</button>
-            <button class="nav-btn" onclick="switchPage('details')">📋 Detail Table</button>
-        </div>
+  // The gid in the URL after #gid=  (the specific tab). Use "0" for the first tab.
+  GID: "108774125",
 
-        <!-- Dashboard Page -->
-        <div id="dashboard" class="page active">
-            <div class="dashboard-section">
-                <h2>📈 Statistics for <span id="dashboardDayLabel">Day 2</span></h2>
-                <div class="stats-grid" id="overallStats"></div>
-            </div>
+  // OPTIONAL: If the dashboard fails to load (CORS), use File > Share > Publish to web (CSV)
+  // and paste that full URL here. When set, it OVERRIDES SHEET_ID/GID above.
+  PUBLISHED_CSV_URL: "",
 
-            <div class="dashboard-section">
-                <h2>📈 Attendance Breakdown</h2>
-                <div class="charts-grid">
-                    <div class="chart-container">
-                        <canvas id="categoryChart"></canvas>
-                    </div>
-                </div>
-            </div>
+  // The day columns to read (must match the column headers in the sheet)
+  DAYS: ["2","3","4","5","6","7","8","9","10"],
 
-            <div class="dashboard-section">
-                <h2>🏢 Sector-wise Summary</h2>
-                <div class="sector-summary" id="sectorSummary"></div>
-            </div>
+  // Auto-refresh interval in minutes (0 = off). The page also refetches on every load/reload.
+  AUTO_REFRESH_MIN: 5
+};
+</script>
+<!-- ============================================================= -->
 
-            <div id="message"></div>
-        </div>
+<div class="head">
+  <div>
+    <h1>Attendance Dashboard</h1>
+    <div class="sub"><span class="dot"></span>Live from Google Sheets &nbsp;·&nbsp; <span id="ctx">All sectors · All incharges</span></div>
+    <div id="status">Loading…</div>
+  </div>
+  <div class="filters">
+    <label class="fl">Day<select id="fDay"></select></label>
+    <label class="fl">Sector<select id="fSector"></select></label>
+    <label class="fl">Incharge<select id="fIncharge"></select></label>
+    <label class="fl">Gender<select id="fGender"></select></label>
+    <button class="rl" id="reload">↻ Reload</button>
+  </div>
+</div>
 
-        <!-- Detail Table Page -->
-        <div id="details" class="page">
-            <div class="detail-section">
-                <h2>🗂️ Attendance Details for <span id="detailDayLabel">Day 2</span></h2>
-                <!--
-                <div class="legend">
-                    <div class="legend-item">
-                        <span class="legend-code">w</span>
-                        <span class="legend-description">Attended in My Jamaat</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-code">x</span>
-                        <span class="legend-description">Mehmaan (Guest) in My Jamaat</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-code">y</span>
-                        <span class="legend-description">Late in My Jamaat</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-code">z</span>
-                        <span class="legend-description">Late in Other Jamaat</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-code">a</span>
-                        <span class="legend-description">Absent</span>
-                    </div>
-                </div>
-                -->
-                <h3 style="margin-bottom: 15px; color: #333;">Select Category:</h3>
-                <div class="categories" id="categories"></div>
+<div id="err"></div>
+<div class="kpis" id="kpis"></div>
 
-                <div class="data-section" id="dataContainer" style="display: none;">
-                    <h2 id="dataTitle">Attendance Data</h2>
-                    <div id="dataContent"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="grid">
+  <div class="card"><h3>Status Distribution</h3><div class="chartwrap"><canvas id="cDonut"></canvas></div></div>
+  <div class="card"><h3>By Sector <span>· stacked by status</span></h3><div class="chartwrap"><canvas id="cSector"></canvas></div></div>
+</div>
 
-    <script src="config.js"></script>
-    <script src="app.js"></script>
+<div class="grid3">
+  <div class="card"><h3>By Sector Incharge <span>· stacked by status</span></h3><div class="chartwrap tall"><canvas id="cIncharge"></canvas></div></div>
+  <div class="card"><h3>Breakdown <span>· gender & misaq</span></h3><div class="chartwrap tall"><canvas id="cBreak"></canvas></div></div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+    <h3 style="margin:0">Individuals <span id="rowcount"></span></h3>
+    <input class="search" id="search" placeholder="Search name…">
+  </div>
+  <div class="tablewrap">
+    <table id="tbl"><thead><tr>
+      <th data-k="name">Name</th><th data-k="sector">Sector</th><th data-k="incharge">Incharge</th>
+      <th data-k="gender">Gender</th><th data-k="misaq">Misaq</th><th data-k="status">Status</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<div class="note">
+  <b>Privacy:</b> Only name and non-identifying attributes are read. Personal identifiers (ITS ID, phone, address, email, blood group) are never loaded.<br>
+  <b>Reconciliation:</b> People total includes those with no status entered yet (shown as <b>Not recorded</b>), so the status counts always add up to the people count.
+</div>
+
+<script>
+const STAT=['ontime','late','absent','other mauze'];
+const SLABEL={'ontime':'On time','late':'Late','absent':'Absent','other mauze':'Other Mauze','none':'Not recorded'};
+const COL={'ontime':'#34D399','late':'#F59E0B','absent':'#F43F5E','other mauze':'#8B5CF6','none':'#475569'};
+const BADGE={'ontime':'b-ontime','late':'b-late','absent':'b-absent','other mauze':'b-other','none':'b-none'};
+Chart.defaults.color='#8A93B2';Chart.defaults.font.family="'Segoe UI',sans-serif";
+Chart.defaults.borderColor='rgba(255,255,255,.06)';
+const $=id=>document.getElementById(id);
+let PEOPLE=[], charts={}, sortK='name', sortDir=1;
+
+function csvUrl(){
+  if(CONFIG.PUBLISHED_CSV_URL) return CONFIG.PUBLISHED_CSV_URL + (CONFIG.PUBLISHED_CSV_URL.includes('?')?'&':'?') + '_=' + Date.now();
+  return `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&gid=${CONFIG.GID}&_=${Date.now()}`;
+}
+function norm(v){return (v||'').toString().trim().toLowerCase();}
+
+function idxOf(headers,names){
+  const low=headers.map(h=>h.trim().toLowerCase());
+  for(const n of names){const i=low.indexOf(n.toLowerCase());if(i>=0)return i;}
+  return -1;
+}
+
+function load(){
+  $('status').textContent='Loading…';
+  $('err').style.display='none';
+  Papa.parse(csvUrl(),{download:true,complete:res=>{
+    try{ parse(res.data); }catch(e){ showErr(e.message); }
+  },error:err=>showErr(err.message||'Network error')});
+}
+
+function showErr(msg){
+  $('err').style.display='block';
+  $('err').innerHTML=`<b>Could not load the sheet.</b> ${msg}<br><br>`+
+    `Make sure the sheet is shared as <b>“Anyone with the link · Viewer”</b>. `+
+    `If it still fails, open the sheet, go to <b>File ▸ Share ▸ Publish to web</b>, choose this tab and <code>Comma-separated values (.csv)</code>, `+
+    `copy the link, and paste it into <code>PUBLISHED_CSV_URL</code> in index.html.`;
+  $('status').textContent='Load failed.';
+}
+
+function parse(rows){
+  if(!rows||!rows.length) throw new Error('Empty response.');
+  const headers=rows[0];
+  const iName=idxOf(headers,['Full_Name','Full Name','Name']);
+  const iGender=idxOf(headers,['Gender']);
+  const iMisaq=idxOf(headers,['Misaq']);
+  const iSector=idxOf(headers,['Sector']);
+  const iInch=idxOf(headers,['Sector_Incharge_Name','Sector Incharge','Incharge']);
+  const dayIdx={}; CONFIG.DAYS.forEach(d=>{let i=headers.indexOf(d); if(i<0)i=headers.findIndex(h=>(h||'').trim()===d); dayIdx[d]=i;});
+  if(iName<0) throw new Error('Could not find a "Full_Name" column in the sheet.');
+  const ppl=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; if(!row) continue;
+    const name=(row[iName]||'').trim(); if(!name) continue;
+    const days={};
+    CONFIG.DAYS.forEach(d=>{const i=dayIdx[d]; const v=norm(i>=0?row[i]:''); days[d]=STAT.includes(v)?v:'';});
+    ppl.push({
+      name,
+      sector:(iSector>=0?(row[iSector]||''):'').trim()||'Unassigned',
+      incharge:(iInch>=0?(row[iInch]||''):'').trim()||'Unassigned',
+      gender:(iGender>=0?(row[iGender]||''):'').trim()||'Unknown',
+      misaq:(iMisaq>=0?(row[iMisaq]||''):'').trim()||'Unknown',
+      days
+    });
+  }
+  PEOPLE=ppl;
+  buildFilters();
+  render();
+  $('status').textContent=`Updated ${new Date().toLocaleString()} · ${PEOPLE.length} people`;
+}
+
+function uniq(a){return [...new Set(a)].sort();}
+function fill(sel,vals,all){const cur=sel.value;sel.innerHTML='';const o=document.createElement('option');o.value='';o.textContent=all;sel.appendChild(o);
+  vals.forEach(v=>{const e=document.createElement('option');e.value=v;e.textContent=v;sel.appendChild(e);});if([...sel.options].some(o=>o.value===cur))sel.value=cur;}
+
+function buildFilters(){
+  fill($('fSector'),uniq(PEOPLE.map(p=>p.sector)),'All sectors');
+  fill($('fIncharge'),uniq(PEOPLE.map(p=>p.incharge)),'All incharges');
+  fill($('fGender'),uniq(PEOPLE.map(p=>p.gender)),'All genders');
+  if(!$('fDay').options.length){
+    $('fDay').innerHTML='<option value="">All days</option>'+CONFIG.DAYS.map(d=>`<option value="${d}">Day ${d}</option>`).join('');
+    if(CONFIG.DAYS.includes('2')) $('fDay').value='2';
+  }
+}
+
+function statusOf(p,day){
+  if(day){return p.days[day]||'none';}
+  for(const d of CONFIG.DAYS){if(p.days[d])return p.days[d];}
+  return 'none';
+}
+function filtered(){
+  const s=$('fSector').value,ic=$('fIncharge').value,g=$('fGender').value;
+  return PEOPLE.filter(p=>(!s||p.sector===s)&&(!ic||p.incharge===ic)&&(!g||p.gender===g));
+}
+function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg);}
+const ALL=['ontime','late','absent','other mauze','none'];
+
+function render(){
+  const day=$('fDay').value, ppl=filtered();
+  const counts={ontime:0,late:0,absent:0,'other mauze':0,none:0};
+  ppl.forEach(p=>counts[statusOf(p,day)]++);
+  const people=ppl.length;
+  $('ctx').textContent=`${$('fSector').value||'All sectors'} · ${$('fIncharge').value||'All incharges'}`;
+  const pct=n=>people?Math.round(n/people*100):0;
+  $('kpis').innerHTML=[
+    {l:'People',v:people,p:`${counts.none} not recorded`,c:'var(--cyan)'},
+    {l:'On time',v:counts.ontime,p:pct(counts.ontime)+'%',c:COL.ontime},
+    {l:'Late',v:counts.late,p:pct(counts.late)+'%',c:COL.late},
+    {l:'Absent',v:counts.absent,p:pct(counts.absent)+'%',c:COL.absent},
+    {l:'Other Mauze',v:counts['other mauze'],p:pct(counts['other mauze'])+'%',c:COL['other mauze']},
+  ].map(k=>`<div class="kpi" style="--accent:${k.c}"><div class="v">${k.v}</div><div class="l">${k.l}</div><div class="p">${k.p}</div></div>`).join('');
+
+  const donutCats=ALL.filter(s=>counts[s]>0);
+  mk('cDonut',{type:'doughnut',data:{labels:donutCats.map(s=>SLABEL[s]),
+    datasets:[{data:donutCats.map(s=>counts[s]),backgroundColor:donutCats.map(s=>COL[s]),borderColor:'#0C1124',borderWidth:3,hoverOffset:8}]},
+    options:{cutout:'62%',plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true,pointStyle:'circle'}}}}});
+
+  function grouped(key){const m={};ppl.forEach(p=>{const st=statusOf(p,day);const k=p[key];(m[k]=m[k]||{ontime:0,late:0,absent:0,'other mauze':0,none:0})[st]++;});
+    const keys=Object.keys(m).sort((a,b)=>ALL.reduce((x,s)=>x+m[b][s],0)-ALL.reduce((x,s)=>x+m[a][s],0));return {keys,m};}
+  const shortSec=k=>k.replace(/^[0-9]+-/,'');
+  const shortName=k=>k.split(' bhai')[0];
+  const stacks=ALL;
+  const sec=grouped('sector');
+  mk('cSector',{type:'bar',data:{labels:sec.keys.map(shortSec),
+    datasets:stacks.map(s=>({label:SLABEL[s],data:sec.keys.map(k=>sec.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
+    options:{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
+      scales:{x:{stacked:true},y:{stacked:true,grid:{display:false},ticks:{font:{size:11}}}}}});
+  const inc=grouped('incharge');
+  mk('cIncharge',{type:'bar',data:{labels:inc.keys.map(shortName),
+    datasets:stacks.map(s=>({label:SLABEL[s],data:inc.keys.map(k=>inc.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
+    options:{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
+      scales:{x:{stacked:true},y:{stacked:true,grid:{display:false},ticks:{font:{size:10.5}}}}}});
+  function dim(key){const m={};ppl.forEach(p=>{const st=statusOf(p,day);const k=p[key];(m[k]=m[k]||{ontime:0,late:0,absent:0,'other mauze':0,none:0})[st]++;});return m;}
+  const gm=dim('gender'),mm=dim('misaq');
+  const cats=[...Object.keys(gm).map(k=>['Gender · '+k,gm[k]]),...Object.keys(mm).map(k=>['Misaq · '+k,mm[k]])];
+  mk('cBreak',{type:'bar',data:{labels:cats.map(c=>c[0]),
+    datasets:stacks.map(s=>({label:SLABEL[s],data:cats.map(c=>c[1][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
+    options:{plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10.5}}},y:{stacked:true}}}});
+  renderTable(ppl,day);
+}
+
+function renderTable(ppl,day){
+  const q=$('search').value.toLowerCase();
+  let rows=ppl.map(p=>({name:p.name,sector:p.sector.replace(/^[0-9]+-/,''),incharge:p.incharge.split(' bhai')[0],
+    gender:p.gender,misaq:p.misaq,status:statusOf(p,day)}));
+  if(q)rows=rows.filter(r=>r.name.toLowerCase().includes(q));
+  rows.sort((a,b)=>((a[sortK]||'')+'').localeCompare((b[sortK]||'')+'')*sortDir);
+  $('rowcount').textContent=`· ${rows.length}`;
+  $('tbl').querySelector('tbody').innerHTML=rows.map(r=>
+    `<tr><td>${r.name}</td><td>${r.sector}</td><td>${r.incharge}</td><td>${r.gender}</td><td>${r.misaq}</td>`+
+    `<td><span class="badge ${BADGE[r.status]}">${SLABEL[r.status]}</span></td></tr>`).join('');
+}
+
+document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=1;}render();});
+['fDay','fSector','fIncharge','fGender'].forEach(id=>$(id).onchange=render);
+$('search').oninput=()=>renderTable(filtered(),$('fDay').value);
+$('reload').onclick=load;
+load();
+if(CONFIG.AUTO_REFRESH_MIN>0) setInterval(load, CONFIG.AUTO_REFRESH_MIN*60000);
+</script>
 </body>
 </html>
