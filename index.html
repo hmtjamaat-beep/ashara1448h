@@ -115,6 +115,7 @@ const CONFIG = {
     <label class="fl">Sector<select id="fSector"></select></label>
     <label class="fl">Incharge<select id="fIncharge"></select></label>
     <label class="fl">Gender<select id="fGender"></select></label>
+    <label class="fl">Status<select id="fStatus"></select></label>
     <button class="rl" id="reload">↻ Reload</button>
   </div>
 </div>
@@ -216,6 +217,10 @@ function buildFilters(){
   fill($('fSector'),uniq(CUBE.map(p=>p.sector)),'All sectors');
   fill($('fIncharge'),uniq(CUBE.map(p=>p.incharge)),'All incharges');
   fill($('fGender'),uniq(CUBE.map(p=>p.gender)),'All genders');
+  if(!$('fStatus').options.length){
+    $('fStatus').innerHTML='<option value="">All statuses</option>'+
+      STAT.map(s=>`<option value="${s}">${SLABEL[s]}</option>`).join('');
+  }
 }
 function buildDays(){
   $('fDay').innerHTML=Object.keys(CONFIG.DAY_COLS).map(d=>`<option value="${d}">Day ${d}</option>`).join('');
@@ -223,8 +228,8 @@ function buildDays(){
 }
 
 function filtered(){
-  const mo=$('fMohalla').value,s=$('fSector').value,ic=$('fIncharge').value,g=$('fGender').value;
-  return CUBE.filter(r=>(!mo||r.mohalla===mo)&&(!s||r.sector===s)&&(!ic||r.incharge===ic)&&(!g||r.gender===g));
+  const mo=$('fMohalla').value,s=$('fSector').value,ic=$('fIncharge').value,g=$('fGender').value,st=$('fStatus').value;
+  return CUBE.filter(r=>(!mo||r.mohalla===mo)&&(!s||r.sector===s)&&(!ic||r.incharge===ic)&&(!g||r.gender===g)&&(!st||r.status===st));
 }
 function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg);}
 function blank(){return STAT.reduce((o,s)=>(o[s]=0,o),{});}
@@ -234,7 +239,7 @@ function render(){
   const tot=blank(); rows.forEach(r=>tot[r.status]+=r.count);
   const total=STAT.reduce((a,s)=>a+tot[s],0);
   const pct=n=>total?Math.round(n/total*100):0;
-  $('ctx').textContent=`${$('fMohalla').value||'All mohallas'} · ${$('fSector').value||'All sectors'} · ${$('fIncharge').value||'All incharges'} · Day ${$('fDay').value}`;
+  $('ctx').textContent=`${$('fMohalla').value||'All mohallas'} · ${$('fSector').value||'All sectors'} · ${$('fIncharge').value||'All incharges'} · ${$('fStatus').value?SLABEL[$('fStatus').value]:'All statuses'} · Day ${$('fDay').value}`;
 
   $('kpis').innerHTML=[
     {l:'Marked',v:total,p:'total records',c:'var(--cyan)'},
@@ -274,7 +279,7 @@ function renderTable(rows,tot,total){
   $('tbl').querySelector('tbody').innerHTML=list.map(o=>
     `<tr class="grp" data-sector="${esc(o.sector)}" data-incharge="${esc(o.incharge)}">`+
     `<td class="crt">▸</td>`+
-    `<td>${esc(o.sector.replace(/^[0-9]+-/,''))}</td><td>${esc(o.incharge.split(' bhai')[0])}</td>`+
+    `<td>${esc(o.sector)}</td><td>${esc(o.incharge)}</td>`+
     `<td class="n">${o.ontime}</td><td class="n">${o.late}</td><td class="n">${o.absent}</td>`+
     `<td class="n">${o['other mauze']}</td><td class="n">${o.total}</td></tr>`).join('');
   $('tbl').querySelector('tfoot').innerHTML=
@@ -302,11 +307,12 @@ function toggleRow(tr){
 
 function loadPeople(sector,incharge,box){
   const c=CONFIG, d=dayCol();
-  const mo=$('fMohalla').value, g=$('fGender').value;
+  const mo=$('fMohalla').value, g=$('fGender').value, st=$('fStatus').value;
   let where=`${c.SECTOR_COL}='${qq(sector)}' and ${c.INCHARGE_COL}='${qq(incharge)}'`;
   if(mo) where+=` and ${c.MOHALLA_COL}='${qq(mo)}'`;
   if(g)  where+=` and ${c.GENDER_COL}='${qq(g)}'`;
-  const key=[sector,incharge,mo,g,$('fDay').value].join('|');
+  if(st) where+=` and ${d}='${qq(st)}'`;
+  const key=[sector,incharge,mo,g,st,$('fDay').value].join('|');
   const tq=`select ${c.NAME_COL},${c.AGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d} where ${where}`;
   const draw=data=>{
     if(!data.length){box.innerHTML='<i>No people found.</i>';return;}
@@ -325,7 +331,7 @@ function loadPeople(sector,incharge,box){
 }
 
 document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=(k==='sector'||k==='incharge')?1:-1;}render();});
-['fMohalla','fSector','fIncharge','fGender'].forEach(id=>$(id).onchange=render);
+['fMohalla','fSector','fIncharge','fGender','fStatus'].forEach(id=>$(id).onchange=render);
 $('fDay').onchange=load;          // day change needs a new server query
 $('reload').onclick=load;
 buildDays(); load();
