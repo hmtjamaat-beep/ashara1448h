@@ -52,7 +52,17 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;position:sticky;top:0;background:#0b1024;cursor:pointer;user-select:none}
 tbody tr:hover{background:rgba(255,255,255,.03)}
 tfoot td{font-weight:700;border-top:1px solid var(--panel-brd)}
-.tablewrap{max-height:460px;overflow:auto;border-radius:12px}
+.tablewrap{max-height:520px;overflow:auto;border-radius:12px}
+tr.grp{cursor:pointer}
+tr.grp:hover{background:rgba(255,255,255,.04)}
+td.crt{color:var(--violet);font-size:11px;text-align:center;user-select:none}
+tr.exp>td{padding:0;background:rgba(0,0,0,.18)}
+.people{padding:10px 14px 14px}
+table.sub{width:100%;font-size:12px}
+table.sub th{position:static;background:transparent;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.08)}
+table.sub td{padding:6px 9px;border-bottom:1px solid rgba(255,255,255,.04)}
+.badge{padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;
+  color:var(--bc);background:color-mix(in srgb,var(--bc) 18%,transparent)}
 .note{color:var(--muted);font-size:12px;margin-top:18px;line-height:1.6;border-top:1px solid var(--panel-brd);padding-top:14px}
 #status{font-size:12px;color:var(--muted);margin-top:6px}
 #err{display:none;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.4);color:#FCA5A5;
@@ -79,6 +89,8 @@ const CONFIG = {
   INCHARGE_COL: "X",   // Sector_Incharge_Name
   GENDER_COL:   "J",   // Gender
   MISAQ_COL:    "K",   // Misaq
+  NAME_COL:     "E",   // Full name  (shown in drill-down)
+  AGE_COL:      "I",   // Age        (shown in drill-down)
 
   // Day label -> the column letter that holds that day's status
   DAY_COLS: { "2":"AE","3":"AF","4":"AG","5":"AH","6":"AI","7":"AJ","8":"AK","9":"AL","10":"AM" },
@@ -115,15 +127,12 @@ const CONFIG = {
   <div class="card"><h3>By Sector <span>· stacked by status</span></h3><div class="chartwrap"><canvas id="cSector"></canvas></div></div>
 </div>
 
-<div class="grid3">
-  <div class="card"><h3>By Sector Incharge <span>· stacked by status</span></h3><div class="chartwrap tall"><canvas id="cIncharge"></canvas></div></div>
-  <div class="card"><h3>Breakdown <span>· gender & misaq</span></h3><div class="chartwrap tall"><canvas id="cBreak"></canvas></div></div>
-</div>
-
 <div class="card">
-  <h3 style="margin:0 0 12px">Sector &amp; Incharge Breakdown <span id="rowcount"></span></h3>
+  <h3 style="margin:0 0 4px">Sector &amp; Incharge Breakdown <span id="rowcount"></span></h3>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Click any row to see the people in that group.</div>
   <div class="tablewrap">
     <table id="tbl"><thead><tr>
+      <th style="width:22px"></th>
       <th data-k="sector">Sector</th><th data-k="incharge">Incharge</th>
       <th class="n" data-k="ontime">On time</th><th class="n" data-k="late">Late</th>
       <th class="n" data-k="absent">Absent</th><th class="n" data-k="other mauze">Other Mauze</th>
@@ -134,8 +143,8 @@ const CONFIG = {
 
 <div class="note">
   <b>How the numbers are computed:</b> totals are aggregated <i>inside</i> Google Sheets across <b>all rows</b>
-  (1,796 members) and only summary counts are sent to this page — names, IDs, phone, address, email and blood
-  group are never requested. This avoids the row-limit that truncates a plain CSV export, so the counts match the sheet.
+  (1,796 members), so the counts match the sheet. The drill-down shows <b>Name, Age, Gender, Misaq</b> and status
+  for a group; personal identifiers (<b>ITS ID, phone, address, email, blood group</b>) are never requested or displayed.
 </div>
 
 <script>
@@ -155,6 +164,7 @@ function dayCol(){ return CONFIG.DAY_COLS[$('fDay').value] || CONFIG.DAY_COLS['2
 
 function load(){
   $('status').textContent='Loading…'; $('err').style.display='none';
+  Object.keys(peopleCache).forEach(k=>delete peopleCache[k]);  // people change with day/reload
   const c=CONFIG, d=dayCol();
   const cols=`${c.MOHALLA_COL},${c.SECTOR_COL},${c.INCHARGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d}`;
   const tq=`select ${cols},count(${c.COUNT_COL}) group by ${cols}`;
@@ -248,22 +258,12 @@ function render(){
     datasets:STAT.map(s=>({label:SLABEL[s],data:sec.keys.map(k=>sec.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
     options:{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
       scales:{x:{stacked:true},y:{stacked:true,grid:{display:false},ticks:{font:{size:11}}}}}});
-  const inc=groupBy('incharge');
-  mk('cIncharge',{type:'bar',data:{labels:inc.keys.map(shortName),
-    datasets:STAT.map(s=>({label:SLABEL[s],data:inc.keys.map(k=>inc.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
-    options:{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
-      scales:{x:{stacked:true},y:{stacked:true,grid:{display:false},ticks:{font:{size:10.5}}}}}});
-
-  const gm={},mm={};
-  rows.forEach(r=>{(gm[r.gender]=gm[r.gender]||blank())[r.status]+=r.count;(mm[r.misaq]=mm[r.misaq]||blank())[r.status]+=r.count;});
-  const cats=[...Object.keys(gm).map(k=>['Gender · '+k,gm[k]]),...Object.keys(mm).map(k=>['Misaq · '+k,mm[k]])];
-  mk('cBreak',{type:'bar',data:{labels:cats.map(c=>c[0]),
-    datasets:STAT.map(s=>({label:SLABEL[s],data:cats.map(c=>c[1][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
-    options:{plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
-      scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10.5}}},y:{stacked:true}}}});
 
   renderTable(rows,tot,total);
 }
+
+function esc(v){return (v==null?'':(''+v)).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function qq(v){return (''+v).replace(/'/g,"''");}  // escape single quotes for gviz query
 
 function renderTable(rows,tot,total){
   const m={};
@@ -272,12 +272,56 @@ function renderTable(rows,tot,total){
   list.sort((a,b)=>{const x=a[sortK],y=b[sortK];return (typeof x==='number'? x-y : (''+x).localeCompare(''+y))*sortDir;});
   $('rowcount').textContent=`· ${list.length} groups`;
   $('tbl').querySelector('tbody').innerHTML=list.map(o=>
-    `<tr><td>${o.sector.replace(/^[0-9]+-/,'')}</td><td>${o.incharge.split(' bhai')[0]}</td>`+
+    `<tr class="grp" data-sector="${esc(o.sector)}" data-incharge="${esc(o.incharge)}">`+
+    `<td class="crt">▸</td>`+
+    `<td>${esc(o.sector.replace(/^[0-9]+-/,''))}</td><td>${esc(o.incharge.split(' bhai')[0])}</td>`+
     `<td class="n">${o.ontime}</td><td class="n">${o.late}</td><td class="n">${o.absent}</td>`+
     `<td class="n">${o['other mauze']}</td><td class="n">${o.total}</td></tr>`).join('');
   $('tbl').querySelector('tfoot').innerHTML=
-    `<tr><td colspan="2">All (filtered)</td><td class="n">${tot.ontime}</td><td class="n">${tot.late}</td>`+
+    `<tr><td colspan="3">All (filtered)</td><td class="n">${tot.ontime}</td><td class="n">${tot.late}</td>`+
     `<td class="n">${tot.absent}</td><td class="n">${tot['other mauze']}</td><td class="n">${total}</td></tr>`;
+  $('tbl').querySelectorAll('tr.grp').forEach(tr=>tr.onclick=()=>toggleRow(tr));
+}
+
+const peopleCache={};
+function toggleRow(tr){
+  if(tr.nextElementSibling && tr.nextElementSibling.classList.contains('exp')){
+    tr.nextElementSibling.remove(); tr.querySelector('.crt').textContent='▸'; return;
+  }
+  // close any other open expansion
+  $('tbl').querySelectorAll('tr.exp').forEach(e=>e.remove());
+  $('tbl').querySelectorAll('.crt').forEach(c=>c.textContent='▸');
+  tr.querySelector('.crt').textContent='▾';
+  const sector=tr.dataset.sector, incharge=tr.dataset.incharge;
+  const exp=document.createElement('tr'); exp.className='exp';
+  exp.innerHTML=`<td></td><td colspan="7"><div class="people">Loading people…</div></td>`;
+  tr.after(exp);
+  const box=exp.querySelector('.people');
+  loadPeople(sector,incharge,box);
+}
+
+function loadPeople(sector,incharge,box){
+  const c=CONFIG, d=dayCol();
+  const mo=$('fMohalla').value, g=$('fGender').value;
+  let where=`${c.SECTOR_COL}='${qq(sector)}' and ${c.INCHARGE_COL}='${qq(incharge)}'`;
+  if(mo) where+=` and ${c.MOHALLA_COL}='${qq(mo)}'`;
+  if(g)  where+=` and ${c.GENDER_COL}='${qq(g)}'`;
+  const key=[sector,incharge,mo,g,$('fDay').value].join('|');
+  const tq=`select ${c.NAME_COL},${c.AGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d} where ${where}`;
+  const draw=data=>{
+    if(!data.length){box.innerHTML='<i>No people found.</i>';return;}
+    box.innerHTML=
+      `<table class="sub"><thead><tr><th>Name</th><th class="n">Age</th><th>Gender</th><th>Misaq</th><th>Status</th></tr></thead><tbody>`+
+      data.map(p=>{const st=(p[4]||'').trim().toLowerCase();const lbl=SLABEL[st]||'—';
+        return `<tr><td>${esc(p[0])}</td><td class="n">${esc(p[1])}</td><td>${esc(p[2])}</td><td>${esc(p[3])}</td>`+
+               `<td><span class="badge" style="--bc:${COL[st]||'#475569'}">${lbl}</span></td></tr>`;}).join('')+
+      `</tbody></table>`;
+  };
+  if(peopleCache[key]){draw(peopleCache[key]);return;}
+  Papa.parse(gvizUrl(tq),{download:true,complete:res=>{
+    const data=(res.data||[]).filter(r=>r&&r.length>=5 && (r[0]||'').trim() && (r[0]||'').trim()!=='Full_Name');
+    peopleCache[key]=data; draw(data);
+  },error:()=>{box.innerHTML='<i>Could not load people.</i>';}});
 }
 
 document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=(k==='sector'||k==='incharge')?1:-1;}render();});
