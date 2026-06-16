@@ -91,9 +91,10 @@ const CONFIG = {
   MISAQ_COL:    "K",   // Misaq
   NAME_COL:     "E",   // Full name  (shown in drill-down)
   AGE_COL:      "I",   // Age        (shown in drill-down)
-  SECINC_F_COL: "A",   // Sector Incharge (Female) Name
-  SUBINC_COL:   "N",  // Sub-Sector Incharge Name
-  SUBINC_F_COL: "Q",  // Sub-Sector Incharge (Female) Name
+  SECINC_F_COL: "A",   //ITS ID
+  SUBINC_COL:   "N",  // Contact number
+  SUBINC_F_COL: "Q",  // Address
+  SUBSECINC_AB_COL: "AB" // Sub-sector incharge name
 
   // Day label -> the column letter that holds that day's status
   DAY_COLS: { "2":"AE","3":"AF","4":"AG","5":"AH","6":"AI","7":"AJ","8":"AK","9":"AL","10":"AM" },
@@ -317,7 +318,7 @@ function loadPeople(sector,incharge,box){
   if(st) where+=` and ${d}='${qq(st)}'`;
   const key=[sector,incharge,mo,g,st,$('fDay').value].join('|');
   const tq=`select ${c.NAME_COL},${c.AGE_COL},${c.GENDER_COL},${c.MISAQ_COL},`+
-           `${c.SECINC_F_COL},${c.SUBINC_COL},${c.SUBINC_F_COL},${d} where ${where}`;
+           `${c.SECINC_F_COL},${c.SUBINC_COL},${c.SUBINC_F_COL},${c.SUBSECINC_AB_COL},${d} where ${where}`;
   const draw=data=>{
     if(!data.length){box.innerHTML='<i>No people found.</i>';return;}
     box.innerHTML=
