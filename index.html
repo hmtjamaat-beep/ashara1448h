@@ -322,7 +322,7 @@ function loadPeople(sector,incharge,box){
     if(!data.length){box.innerHTML='<i>No people found.</i>';return;}
     box.innerHTML=
       `<table class="sub"><thead><tr><th>Name</th><th class="n">Age</th><th>Gender</th><th>Misaq</th>`+
-      `<th>Sector Incharge (F)</th><th>Sub-Sector Incharge</th><th>Sub-Sector Incharge (F)</th><th>Status</th></tr></thead><tbody>`+
+      `<th>ITS_ID</th><th>CONTACT</th><th>ADDRESS</th><th>Status</th></tr></thead><tbody>`+
       data.map(p=>{const stv=(p[7]||'').trim().toLowerCase();const lbl=SLABEL[stv]||'—';
         return `<tr><td>${esc(p[0])}</td><td class="n">${esc(p[1])}</td><td>${esc(p[2])}</td><td>${esc(p[3])}</td>`+
                `<td>${esc(p[4])}</td><td>${esc(p[5])}</td><td>${esc(p[6])}</td>`+
