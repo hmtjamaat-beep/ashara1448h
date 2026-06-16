@@ -27,7 +27,7 @@ h1{font-size:30px;margin:0;font-weight:800;letter-spacing:-.5px;
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cyan);margin-right:7px;box-shadow:0 0 10px var(--cyan)}
 .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
 select{background:var(--bg2);color:var(--ink);border:1px solid var(--panel-brd);border-radius:10px;
-  padding:9px 13px;font-size:13px;outline:none;min-width:150px;cursor:pointer}
+  padding:9px 13px;font-size:13px;outline:none;min-width:150px;cursor:pointer;max-width:240px}
 select:focus{border-color:var(--violet)}
 label.fl{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
 button.rl{background:linear-gradient(120deg,#8B5CF6,#3B82F6);color:#fff;border:0;border-radius:10px;padding:10px 16px;
@@ -44,22 +44,16 @@ button.rl:hover{filter:brightness(1.1)}
 .card{background:var(--panel);border:1px solid var(--panel-brd);border-radius:18px;padding:18px 20px}
 .card h3{margin:0 0 14px;font-size:14px;font-weight:700;letter-spacing:.2px}
 .card h3 span{color:var(--muted);font-weight:500;font-size:12px}
-.chartwrap{position:relative;height:280px}
-.chartwrap.tall{height:360px}
+.chartwrap{position:relative;height:300px}
+.chartwrap.tall{height:380px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th,td{text-align:left;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;position:sticky;top:0;background:#0b1024;cursor:pointer;user-select:none}
 tbody tr:hover{background:rgba(255,255,255,.03)}
-.tablewrap{max-height:430px;overflow:auto;border-radius:12px}
-.badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
-.b-ontime{background:rgba(52,211,153,.16);color:#6EE7B7}
-.b-late{background:rgba(245,158,11,.16);color:#FBBF24}
-.b-absent{background:rgba(244,63,94,.18);color:#FB7185}
-.b-other{background:rgba(139,92,246,.18);color:#C4B5FD}
-.b-none{background:rgba(138,147,178,.14);color:#8A93B2}
+tfoot td{font-weight:700;border-top:1px solid var(--panel-brd)}
+.tablewrap{max-height:460px;overflow:auto;border-radius:12px}
 .note{color:var(--muted);font-size:12px;margin-top:18px;line-height:1.6;border-top:1px solid var(--panel-brd);padding-top:14px}
-.search{background:var(--bg2);border:1px solid var(--panel-brd);border-radius:10px;padding:8px 12px;color:var(--ink);font-size:13px;width:220px;outline:none}
-.search:focus{border-color:var(--violet)}
 #status{font-size:12px;color:var(--muted);margin-top:6px}
 #err{display:none;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.4);color:#FCA5A5;
   padding:16px 18px;border-radius:14px;margin-bottom:18px;font-size:13.5px;line-height:1.6}
@@ -71,25 +65,27 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 
 <!-- ============================================================= -->
 <!--  CONFIG  -  EDIT THIS BLOCK ONLY                              -->
-<!--  To point at a different Google Sheet, change SHEET_ID/GID.  -->
 <!-- ============================================================= -->
 <script>
 const CONFIG = {
-  // The long ID in your sheet URL: docs.google.com/spreadsheets/d/THIS_PART/edit
+  // From your sheet URL: docs.google.com/spreadsheets/d/THIS_PART/edit#gid=THAT_PART
   SHEET_ID: "161tCOlKVaV4AHyi6UmsxbWsnvPKBhFyzhPOEUlXktI8",
-
-  // The gid in the URL after #gid=  (the specific tab). Use "0" for the first tab.
   GID: "108774125",
 
-  // OPTIONAL: If the dashboard fails to load (CORS), use File > Share > Publish to web (CSV)
-  // and paste that full URL here. When set, it OVERRIDES SHEET_ID/GID above.
-  PUBLISHED_CSV_URL: "",
+  // Sheet COLUMN LETTERS (change only if you move columns in the sheet).
+  COUNT_COL:    "B",   // any always-filled column, used only to count rows
+  SECTOR_COL:   "U",   // Sector
+  INCHARGE_COL: "X",   // Sector_Incharge_Name
+  GENDER_COL:   "J",   // Gender
+  MISAQ_COL:    "K",   // Misaq
 
-  // The day columns to read (must match the column headers in the sheet)
-  DAYS: ["2","3","4","5","6","7","8","9","10"],
+  // Day label -> the column letter that holds that day's status
+  DAY_COLS: { "2":"AE","3":"AF","4":"AG","5":"AH","6":"AI","7":"AJ","8":"AK","9":"AL","10":"AM" },
 
-  // Auto-refresh interval in minutes (0 = off). The page also refetches on every load/reload.
-  AUTO_REFRESH_MIN: 5
+  // The status words used in the sheet (lower-case match)
+  STATUSES: ["ontime","late","absent","other mauze"],
+
+  AUTO_REFRESH_MIN: 5   // re-pull from the sheet every N minutes (0 = off)
 };
 </script>
 <!-- ============================================================= -->
@@ -123,181 +119,167 @@ const CONFIG = {
 </div>
 
 <div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
-    <h3 style="margin:0">Individuals <span id="rowcount"></span></h3>
-    <input class="search" id="search" placeholder="Search name…">
-  </div>
+  <h3 style="margin:0 0 12px">Sector &amp; Incharge Breakdown <span id="rowcount"></span></h3>
   <div class="tablewrap">
     <table id="tbl"><thead><tr>
-      <th data-k="name">Name</th><th data-k="sector">Sector</th><th data-k="incharge">Incharge</th>
-      <th data-k="gender">Gender</th><th data-k="misaq">Misaq</th><th data-k="status">Status</th>
-    </tr></thead><tbody></tbody></table>
+      <th data-k="sector">Sector</th><th data-k="incharge">Incharge</th>
+      <th class="n" data-k="ontime">On time</th><th class="n" data-k="late">Late</th>
+      <th class="n" data-k="absent">Absent</th><th class="n" data-k="other mauze">Other Mauze</th>
+      <th class="n" data-k="total">Total</th>
+    </tr></thead><tbody></tbody><tfoot></tfoot></table>
   </div>
 </div>
 
 <div class="note">
-  <b>Privacy:</b> Only name and non-identifying attributes are read. Personal identifiers (ITS ID, phone, address, email, blood group) are never loaded.<br>
-  <b>Reconciliation:</b> People total includes those with no status entered yet (shown as <b>Not recorded</b>), so the status counts always add up to the people count.
+  <b>How the numbers are computed:</b> totals are aggregated <i>inside</i> Google Sheets across <b>all rows</b>
+  (1,796 members) and only summary counts are sent to this page — names, IDs, phone, address, email and blood
+  group are never requested. This avoids the row-limit that truncates a plain CSV export, so the counts match the sheet.
 </div>
 
 <script>
-const STAT=['ontime','late','absent','other mauze'];
-const SLABEL={'ontime':'On time','late':'Late','absent':'Absent','other mauze':'Other Mauze','none':'Not recorded'};
-const COL={'ontime':'#34D399','late':'#F59E0B','absent':'#F43F5E','other mauze':'#8B5CF6','none':'#475569'};
-const BADGE={'ontime':'b-ontime','late':'b-late','absent':'b-absent','other mauze':'b-other','none':'b-none'};
+const STAT=CONFIG.STATUSES;
+const SLABEL={'ontime':'On time','late':'Late','absent':'Absent','other mauze':'Other Mauze'};
+const COL={'ontime':'#34D399','late':'#F59E0B','absent':'#F43F5E','other mauze':'#8B5CF6'};
 Chart.defaults.color='#8A93B2';Chart.defaults.font.family="'Segoe UI',sans-serif";
 Chart.defaults.borderColor='rgba(255,255,255,.06)';
 const $=id=>document.getElementById(id);
-let PEOPLE=[], charts={}, sortK='name', sortDir=1;
+let CUBE=[], charts={}, sortK='total', sortDir=-1;
 
-function csvUrl(){
-  if(CONFIG.PUBLISHED_CSV_URL) return CONFIG.PUBLISHED_CSV_URL + (CONFIG.PUBLISHED_CSV_URL.includes('?')?'&':'?') + '_=' + Date.now();
-  return `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&gid=${CONFIG.GID}&_=${Date.now()}`;
+function gvizUrl(tq){
+  return `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq`+
+         `?tqx=out:csv&gid=${CONFIG.GID}&tq=${encodeURIComponent(tq)}&_=${Date.now()}`;
 }
-function norm(v){return (v||'').toString().trim().toLowerCase();}
-
-function idxOf(headers,names){
-  const low=headers.map(h=>h.trim().toLowerCase());
-  for(const n of names){const i=low.indexOf(n.toLowerCase());if(i>=0)return i;}
-  return -1;
-}
+function dayCol(){ return CONFIG.DAY_COLS[$('fDay').value] || CONFIG.DAY_COLS['2']; }
 
 function load(){
-  $('status').textContent='Loading…';
-  $('err').style.display='none';
-  Papa.parse(csvUrl(),{download:true,complete:res=>{
-    try{ parse(res.data); }catch(e){ showErr(e.message); }
-  },error:err=>showErr(err.message||'Network error')});
+  $('status').textContent='Loading…'; $('err').style.display='none';
+  const c=CONFIG, d=dayCol();
+  const tq=`select ${c.SECTOR_COL},${c.INCHARGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d},count(${c.COUNT_COL}) `+
+           `group by ${c.SECTOR_COL},${c.INCHARGE_COL},${c.GENDER_COL},${c.MISAQ_COL},${d}`;
+  Papa.parse(gvizUrl(tq),{download:true,
+    complete:res=>{ try{ parse(res.data); }catch(e){ showErr(e.message); } },
+    error:err=>showErr(err.message||'Network error')});
 }
 
 function showErr(msg){
   $('err').style.display='block';
   $('err').innerHTML=`<b>Could not load the sheet.</b> ${msg}<br><br>`+
-    `Make sure the sheet is shared as <b>“Anyone with the link · Viewer”</b>. `+
-    `If it still fails, open the sheet, go to <b>File ▸ Share ▸ Publish to web</b>, choose this tab and <code>Comma-separated values (.csv)</code>, `+
-    `copy the link, and paste it into <code>PUBLISHED_CSV_URL</code> in index.html.`;
+    `Make sure the sheet is shared as <b>“Anyone with the link · Viewer”</b> `+
+    `(File ▸ Share ▸ General access). The dashboard reads it directly from your browser.`;
   $('status').textContent='Load failed.';
 }
 
 function parse(rows){
-  if(!rows||!rows.length) throw new Error('Empty response.');
-  const headers=rows[0];
-  const iName=idxOf(headers,['Full_Name','Full Name','Name']);
-  const iGender=idxOf(headers,['Gender']);
-  const iMisaq=idxOf(headers,['Misaq']);
-  const iSector=idxOf(headers,['Sector']);
-  const iInch=idxOf(headers,['Sector_Incharge_Name','Sector Incharge','Incharge']);
-  const dayIdx={}; CONFIG.DAYS.forEach(d=>{let i=headers.indexOf(d); if(i<0)i=headers.findIndex(h=>(h||'').trim()===d); dayIdx[d]=i;});
-  if(iName<0) throw new Error('Could not find a "Full_Name" column in the sheet.');
-  const ppl=[];
-  for(let r=1;r<rows.length;r++){
-    const row=rows[r]; if(!row) continue;
-    const name=(row[iName]||'').trim(); if(!name) continue;
-    const days={};
-    CONFIG.DAYS.forEach(d=>{const i=dayIdx[d]; const v=norm(i>=0?row[i]:''); days[d]=STAT.includes(v)?v:'';});
-    ppl.push({
-      name,
-      sector:(iSector>=0?(row[iSector]||''):'').trim()||'Unassigned',
-      incharge:(iInch>=0?(row[iInch]||''):'').trim()||'Unassigned',
-      gender:(iGender>=0?(row[iGender]||''):'').trim()||'Unknown',
-      misaq:(iMisaq>=0?(row[iMisaq]||''):'').trim()||'Unknown',
-      days
+  if(!rows||rows.length<2) throw new Error('No data returned.');
+  // columns: sector, incharge, gender, misaq, status, count
+  const out=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i]; if(!r||r.length<6) continue;
+    const sector=(r[0]||'').trim();
+    const status=(r[4]||'').trim().toLowerCase();
+    if(sector==='Sector' || !STAT.includes(status)) continue; // skip stray header / blanks
+    out.push({
+      sector: sector||'Unassigned',
+      incharge:(r[1]||'').trim()||'Unassigned',
+      gender:(r[2]||'').trim()||'Unknown',
+      misaq:(r[3]||'').trim()||'Unknown',
+      status,
+      count: parseInt(r[5],10)||0
     });
   }
-  PEOPLE=ppl;
-  buildFilters();
-  render();
-  $('status').textContent=`Updated ${new Date().toLocaleString()} · ${PEOPLE.length} people`;
+  CUBE=out;
+  buildFilters(); render();
+  const total=CUBE.reduce((a,x)=>a+x.count,0);
+  $('status').textContent=`Updated ${new Date().toLocaleString()} · ${total} records (day ${$('fDay').value})`;
 }
 
-function uniq(a){return [...new Set(a)].sort();}
+function uniq(a){return [...new Set(a)].filter(Boolean).sort();}
 function fill(sel,vals,all){const cur=sel.value;sel.innerHTML='';const o=document.createElement('option');o.value='';o.textContent=all;sel.appendChild(o);
   vals.forEach(v=>{const e=document.createElement('option');e.value=v;e.textContent=v;sel.appendChild(e);});if([...sel.options].some(o=>o.value===cur))sel.value=cur;}
 
 function buildFilters(){
-  fill($('fSector'),uniq(PEOPLE.map(p=>p.sector)),'All sectors');
-  fill($('fIncharge'),uniq(PEOPLE.map(p=>p.incharge)),'All incharges');
-  fill($('fGender'),uniq(PEOPLE.map(p=>p.gender)),'All genders');
-  if(!$('fDay').options.length){
-    $('fDay').innerHTML='<option value="">All days</option>'+CONFIG.DAYS.map(d=>`<option value="${d}">Day ${d}</option>`).join('');
-    if(CONFIG.DAYS.includes('2')) $('fDay').value='2';
-  }
+  fill($('fSector'),uniq(CUBE.map(p=>p.sector)),'All sectors');
+  fill($('fIncharge'),uniq(CUBE.map(p=>p.incharge)),'All incharges');
+  fill($('fGender'),uniq(CUBE.map(p=>p.gender)),'All genders');
+}
+function buildDays(){
+  $('fDay').innerHTML=Object.keys(CONFIG.DAY_COLS).map(d=>`<option value="${d}">Day ${d}</option>`).join('');
+  $('fDay').value='2';
 }
 
-function statusOf(p,day){
-  if(day){return p.days[day]||'none';}
-  for(const d of CONFIG.DAYS){if(p.days[d])return p.days[d];}
-  return 'none';
-}
 function filtered(){
   const s=$('fSector').value,ic=$('fIncharge').value,g=$('fGender').value;
-  return PEOPLE.filter(p=>(!s||p.sector===s)&&(!ic||p.incharge===ic)&&(!g||p.gender===g));
+  return CUBE.filter(r=>(!s||r.sector===s)&&(!ic||r.incharge===ic)&&(!g||r.gender===g));
 }
 function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg);}
-const ALL=['ontime','late','absent','other mauze','none'];
+function blank(){return STAT.reduce((o,s)=>(o[s]=0,o),{});}
 
 function render(){
-  const day=$('fDay').value, ppl=filtered();
-  const counts={ontime:0,late:0,absent:0,'other mauze':0,none:0};
-  ppl.forEach(p=>counts[statusOf(p,day)]++);
-  const people=ppl.length;
-  $('ctx').textContent=`${$('fSector').value||'All sectors'} · ${$('fIncharge').value||'All incharges'}`;
-  const pct=n=>people?Math.round(n/people*100):0;
-  $('kpis').innerHTML=[
-    {l:'People',v:people,p:`${counts.none} not recorded`,c:'var(--cyan)'},
-    {l:'On time',v:counts.ontime,p:pct(counts.ontime)+'%',c:COL.ontime},
-    {l:'Late',v:counts.late,p:pct(counts.late)+'%',c:COL.late},
-    {l:'Absent',v:counts.absent,p:pct(counts.absent)+'%',c:COL.absent},
-    {l:'Other Mauze',v:counts['other mauze'],p:pct(counts['other mauze'])+'%',c:COL['other mauze']},
-  ].map(k=>`<div class="kpi" style="--accent:${k.c}"><div class="v">${k.v}</div><div class="l">${k.l}</div><div class="p">${k.p}</div></div>`).join('');
+  const rows=filtered();
+  const tot=blank(); rows.forEach(r=>tot[r.status]+=r.count);
+  const total=STAT.reduce((a,s)=>a+tot[s],0);
+  const pct=n=>total?Math.round(n/total*100):0;
+  $('ctx').textContent=`${$('fSector').value||'All sectors'} · ${$('fIncharge').value||'All incharges'} · Day ${$('fDay').value}`;
 
-  const donutCats=ALL.filter(s=>counts[s]>0);
-  mk('cDonut',{type:'doughnut',data:{labels:donutCats.map(s=>SLABEL[s]),
-    datasets:[{data:donutCats.map(s=>counts[s]),backgroundColor:donutCats.map(s=>COL[s]),borderColor:'#0C1124',borderWidth:3,hoverOffset:8}]},
+  $('kpis').innerHTML=[
+    {l:'Marked',v:total,p:'total records',c:'var(--cyan)'},
+    {l:'On time',v:tot.ontime,p:pct(tot.ontime)+'%',c:COL.ontime},
+    {l:'Late',v:tot.late,p:pct(tot.late)+'%',c:COL.late},
+    {l:'Absent',v:tot.absent,p:pct(tot.absent)+'%',c:COL.absent},
+    {l:'Other Mauze',v:tot['other mauze'],p:pct(tot['other mauze'])+'%',c:COL['other mauze']},
+  ].map(k=>`<div class="kpi" style="--accent:${k.c}"><div class="v">${k.v.toLocaleString()}</div><div class="l">${k.l}</div><div class="p">${k.p}</div></div>`).join('');
+
+  mk('cDonut',{type:'doughnut',data:{labels:STAT.map(s=>SLABEL[s]),
+    datasets:[{data:STAT.map(s=>tot[s]),backgroundColor:STAT.map(s=>COL[s]),borderColor:'#0C1124',borderWidth:3,hoverOffset:8}]},
     options:{cutout:'62%',plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true,pointStyle:'circle'}}}}});
 
-  function grouped(key){const m={};ppl.forEach(p=>{const st=statusOf(p,day);const k=p[key];(m[k]=m[k]||{ontime:0,late:0,absent:0,'other mauze':0,none:0})[st]++;});
-    const keys=Object.keys(m).sort((a,b)=>ALL.reduce((x,s)=>x+m[b][s],0)-ALL.reduce((x,s)=>x+m[a][s],0));return {keys,m};}
+  const groupBy=key=>{const m={};rows.forEach(r=>{(m[r[key]]=m[r[key]]||blank())[r.status]+=r.count;});
+    const keys=Object.keys(m).sort((a,b)=>STAT.reduce((x,s)=>x+m[b][s],0)-STAT.reduce((x,s)=>x+m[a][s],0));return {keys,m};};
   const shortSec=k=>k.replace(/^[0-9]+-/,'');
   const shortName=k=>k.split(' bhai')[0];
-  const stacks=ALL;
-  const sec=grouped('sector');
+
+  const sec=groupBy('sector');
   mk('cSector',{type:'bar',data:{labels:sec.keys.map(shortSec),
-    datasets:stacks.map(s=>({label:SLABEL[s],data:sec.keys.map(k=>sec.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
+    datasets:STAT.map(s=>({label:SLABEL[s],data:sec.keys.map(k=>sec.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
     options:{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
       scales:{x:{stacked:true},y:{stacked:true,grid:{display:false},ticks:{font:{size:11}}}}}});
-  const inc=grouped('incharge');
+  const inc=groupBy('incharge');
   mk('cIncharge',{type:'bar',data:{labels:inc.keys.map(shortName),
-    datasets:stacks.map(s=>({label:SLABEL[s],data:inc.keys.map(k=>inc.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
+    datasets:STAT.map(s=>({label:SLABEL[s],data:inc.keys.map(k=>inc.m[k][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
     options:{indexAxis:'y',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
       scales:{x:{stacked:true},y:{stacked:true,grid:{display:false},ticks:{font:{size:10.5}}}}}});
-  function dim(key){const m={};ppl.forEach(p=>{const st=statusOf(p,day);const k=p[key];(m[k]=m[k]||{ontime:0,late:0,absent:0,'other mauze':0,none:0})[st]++;});return m;}
-  const gm=dim('gender'),mm=dim('misaq');
+
+  const gm={},mm={};
+  rows.forEach(r=>{(gm[r.gender]=gm[r.gender]||blank())[r.status]+=r.count;(mm[r.misaq]=mm[r.misaq]||blank())[r.status]+=r.count;});
   const cats=[...Object.keys(gm).map(k=>['Gender · '+k,gm[k]]),...Object.keys(mm).map(k=>['Misaq · '+k,mm[k]])];
   mk('cBreak',{type:'bar',data:{labels:cats.map(c=>c[0]),
-    datasets:stacks.map(s=>({label:SLABEL[s],data:cats.map(c=>c[1][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
+    datasets:STAT.map(s=>({label:SLABEL[s],data:cats.map(c=>c[1][s]),backgroundColor:COL[s],borderRadius:4,stack:'a'}))},
     options:{plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:12}}},
       scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10.5}}},y:{stacked:true}}}});
-  renderTable(ppl,day);
+
+  renderTable(rows,tot,total);
 }
 
-function renderTable(ppl,day){
-  const q=$('search').value.toLowerCase();
-  let rows=ppl.map(p=>({name:p.name,sector:p.sector.replace(/^[0-9]+-/,''),incharge:p.incharge.split(' bhai')[0],
-    gender:p.gender,misaq:p.misaq,status:statusOf(p,day)}));
-  if(q)rows=rows.filter(r=>r.name.toLowerCase().includes(q));
-  rows.sort((a,b)=>((a[sortK]||'')+'').localeCompare((b[sortK]||'')+'')*sortDir);
-  $('rowcount').textContent=`· ${rows.length}`;
-  $('tbl').querySelector('tbody').innerHTML=rows.map(r=>
-    `<tr><td>${r.name}</td><td>${r.sector}</td><td>${r.incharge}</td><td>${r.gender}</td><td>${r.misaq}</td>`+
-    `<td><span class="badge ${BADGE[r.status]}">${SLABEL[r.status]}</span></td></tr>`).join('');
+function renderTable(rows,tot,total){
+  const m={};
+  rows.forEach(r=>{const k=r.sector+'||'+r.incharge;(m[k]=m[k]||{sector:r.sector,incharge:r.incharge,...blank()})[r.status]+=r.count;});
+  let list=Object.values(m).map(o=>({...o,total:STAT.reduce((a,s)=>a+o[s],0)}));
+  list.sort((a,b)=>{const x=a[sortK],y=b[sortK];return (typeof x==='number'? x-y : (''+x).localeCompare(''+y))*sortDir;});
+  $('rowcount').textContent=`· ${list.length} groups`;
+  $('tbl').querySelector('tbody').innerHTML=list.map(o=>
+    `<tr><td>${o.sector.replace(/^[0-9]+-/,'')}</td><td>${o.incharge.split(' bhai')[0]}</td>`+
+    `<td class="n">${o.ontime}</td><td class="n">${o.late}</td><td class="n">${o.absent}</td>`+
+    `<td class="n">${o['other mauze']}</td><td class="n">${o.total}</td></tr>`).join('');
+  $('tbl').querySelector('tfoot').innerHTML=
+    `<tr><td colspan="2">All (filtered)</td><td class="n">${tot.ontime}</td><td class="n">${tot.late}</td>`+
+    `<td class="n">${tot.absent}</td><td class="n">${tot['other mauze']}</td><td class="n">${total}</td></tr>`;
 }
 
-document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=1;}render();});
-['fDay','fSector','fIncharge','fGender'].forEach(id=>$(id).onchange=render);
-$('search').oninput=()=>renderTable(filtered(),$('fDay').value);
+document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=(k==='sector'||k==='incharge')?1:-1;}render();});
+['fSector','fIncharge','fGender'].forEach(id=>$(id).onchange=render);
+$('fDay').onchange=load;          // day change needs a new server query
 $('reload').onclick=load;
-load();
+buildDays(); load();
 if(CONFIG.AUTO_REFRESH_MIN>0) setInterval(load, CONFIG.AUTO_REFRESH_MIN*60000);
 </script>
 </body>
