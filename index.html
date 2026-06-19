@@ -100,7 +100,7 @@ const CONFIG = {
   DAY_COLS: { "2":"AE","3":"AF","4":"AG","5":"AH","6":"AI","7":"AJ","8":"AK","9":"AL","10":"AM" },
 
   // The status words used in the sheet (lower-case match)
-  STATUSES: ["ontime","late","absent","other mauze"],
+  STATUSES: ["ontime","late","absent","other mauze","relay"],
 
   AUTO_REFRESH_MIN: 30   // re-pull from the sheet every N minutes (0 = off)
 };
@@ -141,6 +141,7 @@ const CONFIG = {
       <th data-k="sector">Sector</th><th data-k="incharge">Incharge</th>
       <th class="n" data-k="ontime">On time</th><th class="n" data-k="late">Late</th>
       <th class="n" data-k="absent">Absent</th><th class="n" data-k="other mauze">Other Mauze</th>
+      <th class="n" data-k="absent">Absent</th><th class="n" data-k="relay">Relay</th>
       <th class="n" data-k="total">Total</th>
     </tr></thead><tbody></tbody><tfoot></tfoot></table>
   </div>
@@ -154,8 +155,8 @@ const CONFIG = {
 
 <script>
 const STAT=CONFIG.STATUSES;
-const SLABEL={'ontime':'On time','late':'Late','absent':'Absent','other mauze':'Other Mauze'};
-const COL={'ontime':'#34D399','late':'#F59E0B','absent':'#F43F5E','other mauze':'#8B5CF6'};
+const SLABEL={'ontime':'On time','late':'Late','absent':'Absent','other mauze':'Other Mauze','relay':'Relay'};
+const COL={'ontime':'#34D399','late':'#F59E0B','absent':'#F43F5E','other mauze':'#8B5CF6','relay':'#FFCE1B'};
 Chart.defaults.color='#8A93B2';Chart.defaults.font.family="'Segoe UI',sans-serif";
 Chart.defaults.borderColor='rgba(255,255,255,.06)';
 const $=id=>document.getElementById(id);
@@ -251,6 +252,7 @@ function render(){
     {l:'Late',v:tot.late,p:pct(tot.late)+'%',c:COL.late},
     {l:'Absent',v:tot.absent,p:pct(tot.absent)+'%',c:COL.absent},
     {l:'Other Mauze',v:tot['other mauze'],p:pct(tot['other mauze'])+'%',c:COL['other mauze']},
+    {l:'Relay',v:tot['relay'],p:pct(tot['relay'])+'%',c:COL['relay']},
   ].map(k=>`<div class="kpi" style="--accent:${k.c}"><div class="v">${k.v.toLocaleString()}</div><div class="l">${k.l}</div><div class="p">${k.p}</div></div>`).join('');
 
   mk('cDonut',{type:'doughnut',data:{labels:STAT.map(s=>SLABEL[s]),
@@ -285,10 +287,10 @@ function renderTable(rows,tot,total){
     `<td class="crt">▸</td>`+
     `<td>${esc(o.sector)}</td><td>${esc(o.incharge)}</td>`+
     `<td class="n">${o.ontime}</td><td class="n">${o.late}</td><td class="n">${o.absent}</td>`+
-    `<td class="n">${o['other mauze']}</td><td class="n">${o.total}</td></tr>`).join('');
+    `<td class="n">${o['other mauze']}</td><td class="n">${o['relay']}</td><td class="n">${o.total}</td></tr>`).join('');
   $('tbl').querySelector('tfoot').innerHTML=
     `<tr><td colspan="3">All (filtered)</td><td class="n">${tot.ontime}</td><td class="n">${tot.late}</td>`+
-    `<td class="n">${tot.absent}</td><td class="n">${tot['other mauze']}</td><td class="n">${total}</td></tr>`;
+    `<td class="n">${tot.absent}</td><td class="n">${tot['other mauze']}</td><td class="n">${tot['relay']}</td><td class="n">${total}</td></tr>`;
   $('tbl').querySelectorAll('tr.grp').forEach(tr=>tr.onclick=()=>toggleRow(tr));
 }
 
